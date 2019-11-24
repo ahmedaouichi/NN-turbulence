@@ -1,2 +1,2 @@
-# Neural
-tensor basis neural network
+# NN for turbulence modelling
+Minor project B
