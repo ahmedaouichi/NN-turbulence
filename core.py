@@ -9,10 +9,10 @@ class Calculator:
     def calc(self):
         self.x += 1
 
-    def calc_Sij_Rij(grad_u, tke, eps, n):
+    def calc_Sij_Rij(grad_u, k, eps, n):
 
         S = np.zeros((n, 3, 3))
         R = np.zeros((n, 3, 3))
         for i in xrange(n):
-            S[i, :, :] = tke[i]/eps[i] * 0.5 * (grad_u[i, :, :] + np.transpose(grad_u[i, :, :]))
-            R[i, :, :] = tke[i]/eps[i] * 0.5 * (grad_u[i, :, :] - np.transpose(grad_u[i, :, :]))
+            S[i, :, :] = k[i]/eps[i] * 0.5 * (grad_u[i, :, :] + np.transpose(grad_u[i, :, :]))
+            R[i, :, :] = k[i]/eps[i] * 0.5 * (grad_u[i, :, :] - np.transpose(grad_u[i, :, :]))
