@@ -11,8 +11,8 @@ class Calculator:
 
     def calc_Sij_Rij(grad_u, tke, eps, n):
 
-        Sij = np.zeros((n, 3, 3))
-        Rij = np.zeros((n, 3, 3))
+        S = np.zeros((n, 3, 3))
+        R = np.zeros((n, 3, 3))
         for i in xrange(n):
-            Sij[i, :, :] = tke[i]/eps[i] * 0.5 * (grad_u[i, :, :] + np.transpose(grad_u[i, :, :]))
-            Rij[i, :, :] = tke[i]/eps[i] * 0.5 * (grad_u[i, :, :] - np.transpose(grad_u[i, :, :]))
+            S[i, :, :] = tke[i]/eps[i] * 0.5 * (grad_u[i, :, :] + np.transpose(grad_u[i, :, :]))
+            R[i, :, :] = tke[i]/eps[i] * 0.5 * (grad_u[i, :, :] - np.transpose(grad_u[i, :, :]))
