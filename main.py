@@ -1,13 +1,14 @@
+import matplotlib.pyplot as plt
+import matplotlib as mpl
 import numpy as np
 from core import Core
 from nn import NN
 
-
 def main():
-    test1 = NN()
-    test2 = Core(10)
-    test2.calc()
-    print(test1.name," and ",test2.x)
-
-
+    test3 = Core()
+    test3.loadData('../inversion/DATA/SQUAREDUCT/DATA/03500_full.csv')
+    test3.calculateGradient()
+    
+    data = test3.data
+    
 main()
