@@ -1,5 +1,8 @@
 import numpy as np
 import csv
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+
 
 class Core:
     
@@ -60,16 +63,39 @@ class Core:
                 y_small[counter] = y[ii]
                 counter+=1
             
-            
         x_small = x_small[0:counter+1]
         
-        u = np.zeros([3,len(x_small)])
-        u[0,:] = data['um']
-        #u[1,:] = data['vm']
-        #u[2,:] = data['wm']
-        u_prime_x = np.zeros(len(x_small))
-        for ii in range(len(x_small-1)):
-            u_prime_x[ii] = (u[0,ii*len(x_small)]-u[0,ii*len(x_small)])/(x_small[2]-x_small[0]) 
-        print(u_prime)
+        yy = np.reshape(data['Y'], [129,129])
+        zz = np.reshape(data['Z'], [129,129])
+        uu = np.reshape(data['um'],[129,129])
+        uv = np.reshape(data['vm'],[129,129])
+        uw = np.reshape(data['wm'],[129,129])
+    
+        
+        u = np.array([uu,uv,uw])
+    
+        dx = 0.1
+        dy = 0.1
+        dz = 0.1
+        print(np.shape(u))
+        nabla_u = np.gradient(u,dx)
+        print(np.shape(nabla_u[1]))
+        
+        gradient = np.zeros([129,129,3,3])
+        for ii in range(0):
+            for jj in range(0):
+                for nn in range(3):
+                    for mm in range(3):
+                        gradient[ii,jj,nn,mm] = nabla_u[nn][mm,ii,jj]
+                
+        print(np.shape(gradient))
+        fig = plt.figure()
+        ax = fig.gca()
+        ax.quiver(u[0,:], u[1,:], dx, dy, color='r',
+                  angles='xy', scale_units='xy')
+        plt.show()
+        
+
+
         
         
