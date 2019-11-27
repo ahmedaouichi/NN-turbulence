@@ -1,15 +1,15 @@
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import numpy as np
-# from core import Core
+from core import Core
 from nn import NN
 
 def main():
-    # core = Core()
-    # core.loadData('../inversion/DATA/SQUAREDUCT/DATA/03500_full.csv')
+    core = Core()
+    core.loadData('../inversion/DATA/SQUAREDUCT/DATA/03500_full.csv')
     # tau = core.get_tau()
     # u = core.get_u()
-    # grad_u = core.calc_gradient()
+    grad_u = core.calc_gradient()
     # k = core.calc_k()
     # eps = core.calc_epsilon()
     # n = core.get_n()
