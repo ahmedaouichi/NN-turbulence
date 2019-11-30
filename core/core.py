@@ -3,7 +3,6 @@ import csv
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-
 class Core:
 
     object_counter = 0
@@ -44,7 +43,7 @@ class Core:
         return S,R
 
 
-    def partialderivative(u0, u1, u2, q0, q2):
+    def partialderivativeCD(u0, u1, u2, q0, q2):
         return (u0-2*u1+u2)/(q2-q0)
    
     def partialderivativeFD(u1, u2, q1, q2):
@@ -52,6 +51,24 @@ class Core:
     
     def partialderivativeBD(u0, u1, q0, q1):
         return (u1-u0)/(q1-q0)
+    
+    def coordinatesCD(uu,ii,jj, direction):
+        if direction == 'y':
+            return uu[ii-1,jj], uu[ii,jj], uu[ii+1,jj]
+        else: 
+            return uu[ii,jj-1], uu[ii,jj], uu[ii,jj+1]
+    
+    def coordinatesFD(uu,ii,jj, direction):
+        if direction == 'y':
+            return uu[ii,jj], uu[ii+1,jj]
+        else: 
+            return uu[ii,jj], uu[ii,jj+1]
+    
+    def coordinatesBD(uu,ii,jj, direction):
+        if direction == 'y':
+            return uu[ii-1,jj], uu[ii,jj]
+        else: 
+            return uu[ii,jj-1], uu[ii,jj]
 
     def calc_gradient(self):
         data = self.data
@@ -62,7 +79,7 @@ class Core:
         uu = np.reshape(data['um'],[grid_size,grid_size])
         vv = np.reshape(data['vm'],[grid_size,grid_size])
         ww = np.reshape(data['wm'],[grid_size,grid_size])
-    
+        
         ## Create matrix containing u,v and w for every (x,y) data point
         ## Matrix[X, Y, 3 (u,v,w)]
         u = np.array([uu,vv,ww])
@@ -72,81 +89,265 @@ class Core:
     
         gradient_manual = np.zeros([grid_size,grid_size,3,3])
         
-        for ii in range(1,grid_size-1):
-            for jj in range(1,grid_size-1):
-                ## As the flow is symmetric in the x-direction, the gradient in x-direction is zero.
-                ux_x = 0
-                uy_x = 0
-                uz_x = 0
+        ## As the flow is symmetric in the x-direction, the gradient in x-direction is always zero.
+        ux_x = 0
+        uy_x = 0
+        uz_x = 0
+        
+        for ii in range(grid_size):
+            for jj in range(grid_size):
                 
-                y0 = yy[ii-1,jj]
                 y1 = yy[ii,jj]
-                y2 = yy[ii+1,jj]
-                
-                z0 = zz[ii,jj-1]
                 z1 = zz[ii,jj]
-                z2 = zz[ii,jj+1]
                 
-                u_y0 = uu[ii-1,jj]
-                u_y1 = uu[ii,jj]
-                u_y2 = uu[ii+1,jj]
+                ## Inside grid points
+                if ((ii > 0 and ii < grid_size-2) and (jj > 0 and jj < grid_size-2)):
+                    y0 = yy[ii-1,jj]
+                    y2 = yy[ii+1,jj]
+                    
+                    z0 = zz[ii,jj-1]
+                    z2 = zz[ii,jj+1]
+                    
+                    u_y0, u_y1, u_y2 = Core.coordinatesCD(uu,ii,jj, 'y') 
+                    u_z0, u_z1, u_z2 = Core.coordinatesCD(uu,ii,jj, 'z')
+                    v_y0, v_y1, v_y2 = Core.coordinatesCD(vv,ii,jj, 'y')
+                    v_z0, v_z1, v_z2 = Core.coordinatesCD(vv,ii,jj, 'z')
+                    w_y0, w_y1, w_y2 = Core.coordinatesCD(ww,ii,jj, 'y') 
+                    w_z0, w_z1, w_z2 = Core.coordinatesCD(ww,ii,jj, 'z')
+                    
+                    ux_y = Core.partialderivativeCD(u_y0, u_y1, u_y2, y0, y2)
+                    uy_y = Core.partialderivativeCD(v_y0, v_y1, v_y2, y0, y2)
+                    uz_y = Core.partialderivativeCD(w_y0, w_y1, w_y2, y0, y2)
+                    
+                    ux_z = Core.partialderivativeCD(u_z0, u_z1, u_z2, z0, z2)
+                    uy_z = Core.partialderivativeCD(v_z0, v_z1, v_z2, z0, z2)
+                    uz_z = Core.partialderivativeCD(w_z0, w_z1, w_z2, z0, z2)
+                    
+                    gradient_manual[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
                 
-                u_z0 = uu[ii,jj-1]
-                u_z1 = uu[ii,jj]
-                u_z2 = uu[ii,jj-1]
+                ## Upper boundary --> z = 0
+                if ((ii > 0 and ii < grid_size-2) and (jj == 0)):
+                    y0 = yy[ii-1,jj]
+                    y2 = yy[ii+1,jj]
+                    
+                    z2 = zz[ii,jj+1]
+                    
+                    u_y0, u_y1, u_y2 = Core.coordinatesCD(uu,ii,jj, 'y') 
+                    u_z1, u_z2 = Core.coordinatesFD(uu,ii,jj, 'z')
+                    v_y0, v_y1, v_y2 = Core.coordinatesCD(vv,ii,jj, 'y')
+                    v_z1, v_z2 = Core.coordinatesFD(vv,ii,jj, 'z')
+                    w_y0, w_y1, w_y2 = Core.coordinatesCD(ww,ii,jj, 'y') 
+                    w_z1, w_z2 = Core.coordinatesFD(ww,ii,jj, 'z')
+                    
+                    ux_y = Core.partialderivativeCD(u_y0, u_y1, u_y2, y0, y2)
+                    uy_y = Core.partialderivativeCD(v_y0, v_y1, v_y2, y0, y2)
+                    uz_y = Core.partialderivativeCD(w_y0, w_y1, w_y2, y0, y2)
+                    
+                    ux_z = Core.partialderivativeFD(u_z1, u_z2, z1, z2)
+                    uy_z = Core.partialderivativeFD(v_z1, v_z2, z1, z2)
+                    uz_z = Core.partialderivativeFD(w_z1, w_z2, z1, z2)
+                    
+                    gradient_manual[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
                 
-                v_y0 = vv[ii-1,jj]
-                v_y1 = vv[ii,jj]
-                v_y2 = vv[ii+1,jj]
-                
-                v_z0 = vv[ii,jj-1]
-                v_z1 = vv[ii,jj]
-                v_z2 = vv[ii,jj+1]
-                
-                w_y0 = ww[ii-1,jj]
-                w_y1 = ww[ii,jj]
-                w_y2 = ww[ii+1,jj]
-                
-                w_z0 = ww[ii,jj-1]
-                w_z1 = ww[ii,jj]
-                w_z2 = ww[ii,jj+1]
-                
-                
-                ux_y = Core.partialderivative(u_y0, u_y1, u_y2, y0, y2)
-                uy_y = Core.partialderivative(v_y0, v_y1, v_y2, y0, y2)
-                uz_y = Core.partialderivative(w_y0, w_y1, w_y2, y0, y2)
-                
-                ux_z = Core.partialderivative(u_z0, u_z1, u_z2, z0, z2)
-                uy_z = Core.partialderivative(v_z0, v_z1, v_z2, z0, z2)
-                uz_z = Core.partialderivative(w_z0, w_z1, w_z2, z0, z2)
-                
-                gradient_tensor = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
-                gradient_manual[ii,jj,:,:] = gradient_tensor
+                ## Lower boundary --> z = grid_size-1
+                if ((ii > 0 and ii < grid_size-2) and (jj == grid_size-1)):
+                    
+                    y0 = yy[ii-1,jj]
+                    y2 = yy[ii+1,jj]
+                    
+                    z0 = zz[ii,jj-1]
+                    
+                    u_y0, u_y1, u_y2 = Core.coordinatesCD(uu,ii,jj, 'y') 
+                    u_z0, u_z1 = Core.coordinatesBD(uu,ii,jj, 'z')
+                    v_y0, v_y1, v_y2 = Core.coordinatesCD(vv,ii,jj, 'y')
+                    v_z0, v_z1 = Core.coordinatesBD(vv,ii,jj, 'z')
+                    w_y0, w_y1, w_y2 = Core.coordinatesCD(ww,ii,jj, 'y') 
+                    w_z0, w_z1 = Core.coordinatesBD(ww,ii,jj, 'z')
+                    
+                    ux_y = Core.partialderivativeCD(u_y0, u_y1, u_y2, y0, y2)
+                    uy_y = Core.partialderivativeCD(v_y0, v_y1, v_y2, y0, y2)
+                    uz_y = Core.partialderivativeCD(w_y0, w_y1, w_y2, y0, y2)
+                    
+                    ux_z = Core.partialderivativeBD(u_z0, u_z1, z0, z1)
+                    uy_z = Core.partialderivativeBD(v_z0, v_z1, z0, z1)
+                    uz_z = Core.partialderivativeBD(w_z0, w_z1, z0, z1)
+                    
+                    gradient_manual[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
+                    
+                ## Left boundary --> y = 0
+                if ((ii == 0) and (jj > 0 and jj < grid_size-2)):
+                    y2 = yy[ii+1,jj]
+                    
+                    z0 = zz[ii,jj-1]
+                    z2 = zz[ii,jj+1]
+                    
+                    u_y1, u_y2 = Core.coordinatesFD(uu,ii,jj, 'y') 
+                    u_z0, u_z1, u_z2 = Core.coordinatesCD(uu,ii,jj, 'z')
+                    v_y1, v_y2 = Core.coordinatesFD(vv,ii,jj, 'y')
+                    v_z0, v_z1, v_z2 = Core.coordinatesCD(vv,ii,jj, 'z')
+                    w_y1, w_y2 = Core.coordinatesFD(ww,ii,jj, 'y') 
+                    w_z0, w_z1, w_z2 = Core.coordinatesCD(ww,ii,jj, 'z')
+                    
+                    ux_y = Core.partialderivativeFD(u_y1, u_y2, y1, y2)
+                    uy_y = Core.partialderivativeFD(v_y1, v_y2, y1, y2)
+                    uz_y = Core.partialderivativeFD(w_y1, w_y2, y1, y2)
+                    
+                    ux_z = Core.partialderivativeCD(u_z0, u_z1, u_z2, z0, z2)
+                    uy_z = Core.partialderivativeCD(v_z0, v_z1, v_z2, z0, z2)
+                    uz_z = Core.partialderivativeCD(w_z0, w_z1, w_z2, z0, z2)
+                    
+                    gradient_manual[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
+                    
+                ## Right boundary --> y = grid_size - 1
+                if ((ii == grid_size-1) and (jj > 0 and jj < grid_size-2)):
+                    y0 = yy[ii-1,jj]
+                    
+                    z0 = zz[ii,jj-1]
+                    z2 = zz[ii,jj+1]
+                    
+                    u_y0, u_y1 = Core.coordinatesBD(uu,ii,jj, 'y') 
+                    u_z0, u_z1, u_z2 = Core.coordinatesCD(uu,ii,jj, 'z')
+                    v_y0, v_y1 = Core.coordinatesBD(vv,ii,jj, 'y')
+                    v_z0, v_z1, v_z2 = Core.coordinatesCD(vv,ii,jj, 'z')
+                    w_y0, w_y1 = Core.coordinatesBD(ww,ii,jj, 'y') 
+                    w_z0, w_z1, w_z2 = Core.coordinatesCD(ww,ii,jj, 'z')
+                    
+                    ux_y = Core.partialderivativeBD(u_y0, u_y1, y0, y1)
+                    uy_y = Core.partialderivativeBD(v_y0, v_y1, y0, y1)
+                    uz_y = Core.partialderivativeBD(w_y0, w_y1, y0, y1)
+                    
+                    ux_z = Core.partialderivativeCD(u_z0, u_z1, u_z2, z0, z2)
+                    uy_z = Core.partialderivativeCD(v_z0, v_z1, v_z2, z0, z2)
+                    uz_z = Core.partialderivativeCD(w_z0, w_z1, w_z2, z0, z2)
+                    
+                    gradient_manual[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
+                    
+                ## Left-top corner --> y = 0, z = 0
+                if ((ii == 0) and (jj == 0)):
+                    y2 = yy[ii+2,jj]
+                    
+                    z2 = zz[ii,jj+1]
+                    
+                    u_y1, u_y2 = Core.coordinatesFD(uu,ii,jj, 'y') 
+                    u_z1, u_z2 = Core.coordinatesFD(uu,ii,jj, 'z')
+                    v_y1, v_y2 = Core.coordinatesFD(vv,ii,jj, 'y')
+                    v_z1, v_z2 = Core.coordinatesFD(vv,ii,jj, 'z')
+                    w_y1, w_y2 = Core.coordinatesFD(ww,ii,jj, 'y') 
+                    w_z1, w_z2 = Core.coordinatesFD(ww,ii,jj, 'z')
+                    
+                    ux_y = Core.partialderivativeFD(u_y1, u_y2, y1, y2)
+                    uy_y = Core.partialderivativeFD(v_y1, v_y2, y1, y2)
+                    uz_y = Core.partialderivativeFD(w_y1, w_y2, y1, y2)
+                    
+                    ux_z = Core.partialderivativeFD(u_z1, u_z2, z1, z2)
+                    uy_z = Core.partialderivativeFD(v_z1, v_z2, z1, z2)
+                    uz_z = Core.partialderivativeFD(w_z1, w_z2, z1, z2)
+                    
+                    gradient_manual[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])    
+                    
+                ## Right-top corner --> y = grid_size-1, z = 0
+                if ((ii == grid_size-1) and (jj == 0)):
+                    y0 = yy[ii-1,jj]
+                    
+                    z2 = zz[ii,jj+1]
+                    
+                    u_y0, u_y1 = Core.coordinatesBD(uu,ii,jj, 'y') 
+                    u_z1, u_z2 = Core.coordinatesFD(uu,ii,jj, 'z')
+                    v_y0, v_y1 = Core.coordinatesBD(vv,ii,jj, 'y')
+                    v_z1, v_z2 = Core.coordinatesFD(vv,ii,jj, 'z')
+                    w_y0, w_y1 = Core.coordinatesBD(ww,ii,jj, 'y') 
+                    w_z1, w_z2 = Core.coordinatesFD(ww,ii,jj, 'z')
+                    
+                    ux_y = Core.partialderivativeBD(u_y0, u_y1, y0, y1)
+                    uy_y = Core.partialderivativeBD(v_y0, v_y1, y0, y1)
+                    uz_y = Core.partialderivativeBD(w_y0, w_y1, y0, y1)
+                    
+                    ux_z = Core.partialderivativeFD(u_z1, u_z2, z1, z2)
+                    uy_z = Core.partialderivativeFD(v_z1, v_z2, z1, z2)
+                    uz_z = Core.partialderivativeFD(w_z1, w_z2, z1, z2)
+                    
+                    gradient_manual[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])    
+                    
+                ## Right-bottom corner --> y = grid_size-1, z = grid_size-1
+                if ((ii == grid_size-1) and (jj == grid_size-1)):
+                    y0 = yy[ii-1,jj]
+                    
+                    z0 = zz[ii,jj-1]
+                    
+                    u_y0, u_y1 = Core.coordinatesBD(uu,ii,jj, 'y') 
+                    u_z0, u_z1 = Core.coordinatesBD(uu,ii,jj, 'z')
+                    v_y0, v_y1 = Core.coordinatesBD(vv,ii,jj, 'y')
+                    v_z0, v_z1 = Core.coordinatesBD(vv,ii,jj, 'z')
+                    w_y0, w_y1 = Core.coordinatesBD(ww,ii,jj, 'y') 
+                    w_z0, w_z1 = Core.coordinatesBD(ww,ii,jj, 'z')
+                    
+                    ux_y = Core.partialderivativeBD(u_y0, u_y1, y0, y1)
+                    uy_y = Core.partialderivativeBD(v_y0, v_y1, y0, y1)
+                    uz_y = Core.partialderivativeBD(w_y0, w_y1, y0, y1)
+                    
+                    ux_z = Core.partialderivativeBD(u_z0, u_z1, z0, z1)
+                    uy_z = Core.partialderivativeBD(v_z0, v_z1, z0, z1)
+                    uz_z = Core.partialderivativeBD(w_z0, w_z1, z0, z1)
+                    
+                    gradient_manual[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])    
+                    
+                ## Left-bottom corner --> y = 0, z = grid_size-1
+                if ((ii == 0) and (jj == grid_size-1)):
+                    y2 = yy[ii+1,jj]
+                    
+                    z0 = zz[ii,jj-1]
+                    
+                    u_y1, u_y2 = Core.coordinatesFD(uu,ii,jj, 'y') 
+                    u_z0, u_z1 = Core.coordinatesBD(uu,ii,jj, 'z')
+                    v_y1, v_y2 = Core.coordinatesFD(vv,ii,jj, 'y')
+                    v_z0, v_z1 = Core.coordinatesBD(vv,ii,jj, 'z')
+                    w_y1, w_y2 = Core.coordinatesFD(ww,ii,jj, 'y') 
+                    w_z0, w_z1 = Core.coordinatesBD(ww,ii,jj, 'z')
+                    
+                    ux_y = Core.partialderivativeFD(u_y1, u_y2, y1, y2)
+                    uy_y = Core.partialderivativeFD(v_y1, v_y2, y1, y2)
+                    uz_y = Core.partialderivativeFD(w_y1, w_y2, y1, y2)
+                    
+                    ux_z = Core.partialderivativeBD(u_z0, u_z1, z0, z1)
+                    uy_z = Core.partialderivativeBD(v_z0, v_z1, z0, z1)
+                    uz_z = Core.partialderivativeBD(w_z0, w_z1, z0, z1)
+                    
+                    gradient_manual[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]]) 
         
-        
-        ####### THIS NEED TO BE FINISHED!
-#        ## Calculate tensors for boundary points
-#        for jj in range(1,grid_size-1):
-#            ii = 0
-#            ux_y = Core.partialderivativeFD(u_y1, u_y2, y1, y2)
-#            uy_y = Core.partialderivativeFD(v_y1, v_y2, y1, y2)
-#            uz_y = Core.partialderivativeFD(w_y1, w_y2, y1, y2)
+##########   CODE FOR TESTING: PRINTS TENSOR FOR EACH DOMAIN   ##########
+#        print('Tensor at a normal grid point:')
+#        print(gradient_manual[1,1,:,:])
+#        print('')
 #        
-#        if (ii == grid_size-1):
-#            ux_y = Core.partialderivativeBD(u_y0, u_y1, y0, y1)
-#            uy_y = Core.partialderivativeBD(v_y0, v_y1, y0, y1)
-#            uz_y = Core.partialderivativeBD(w_y0, w_y1, y0, y1)
+#        print('Tensor at a upper boundary grid point:')
+#        print(gradient_manual[1,0,:,:])            
+#        print('')
 #        
-        gradient_tensor
-        
-        print(gradient_manual[1,1,:,:])
-        
-        gradient = np.zeros([129,129,3,3])
-        for ii in range(0):
-            for jj in range(0):
-                for nn in range(3):
-                    for mm in range(3):
-                        gradient[ii,jj,nn,mm] = nabla_u[nn][mm,ii,jj]
-                
-        
-        
+#        print('Tensor at a lower boundary grid point:')            
+#        print(gradient_manual[1,grid_size-1,:,:])
+#        print('')
+#        
+#        print('Tensor at a left boundary grid point:')            
+#        print(gradient_manual[0,1,:,:])
+#        print('')
+#        
+#        print('Tensor at a right boundary grid point:')            
+#        print(gradient_manual[grid_size-1,1,:,:])
+#        print('')
+#        
+#        print('Tensor at top-left corner grid point:')            
+#        print(gradient_manual[0,0])
+#        print('')
+#        
+#        print('Tensor at top-right corner grid point:')            
+#        print(gradient_manual[grid_size-1,0])
+#        print('')
+#        
+#        print('Tensor at bottom-right corner grid point:')            
+#        print(gradient_manual[grid_size-1,grid_size-1])
+#        print('')
+#        
+#        print('Tensor at bottom-left corner grid point:')            
+#        print(gradient_manual[0,grid_size-1])
+#        print('')
+#        
