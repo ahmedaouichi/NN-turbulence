@@ -30,8 +30,8 @@ class Core:
             coord[ii] = data[ii]
         return coord, DIM
 
-    def importMeanVelocity(DIM_Y, DIM_Z, usecase):
-        filepath = '../inversion/DATA/RECTANGULARDUCT/DATA/U_' + usecase + '.prof.txt'    
+    def importMeanVelocity(DIM_Y, DIM_Z, usecase, velocity_component):
+        filepath = '../inversion/DATA/RECTANGULARDUCT/DATA/'+velocity_component+'_' + usecase + '.prof.txt'    
         U = np.zeros([DIM_Y, DIM_Z])
     
         counter = 0
@@ -48,7 +48,7 @@ class Core:
         
         return U
     
-    def plotMeanVelocity(self, RA, Retau):
+    def plotMeanVelocity(self, RA, Retau, velocity_component):
         for ra in RA:
             usecase = str(ra)+'_'+str(Retau)
             
@@ -60,7 +60,7 @@ class Core:
             else:
                 ycoord, DIM_Y = Core.importCoordinates('y', usecase)
             
-            U = Core.importMeanVelocity(DIM_Y, DIM_Z, usecase) 
+            U = Core.importMeanVelocity(DIM_Y, DIM_Z, usecase, velocity_component) 
             
             fig = plt.figure(figsize=(ra,0.5))
             plt.contourf(U, extent=(np.amin(zcoord), np.amax(zcoord), np.amin(ycoord), np.amax(ycoord)), cmap=plt.cm.Oranges)

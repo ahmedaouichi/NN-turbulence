@@ -15,7 +15,8 @@ def main():
     Retau = 180
     RA = [1,3,5,7,10,14]
     
-    core.plotMeanVelocity(RA, Retau)
+    ## 3rd input argument refers to one of velocity components <U, V, W>
+    core.plotMeanVelocity(RA, Retau, 'U')
     
     
     ##core.loadData('../inversion/DATA/SQUAREDUCT/DATA/03500_full.csv')
