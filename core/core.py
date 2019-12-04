@@ -4,12 +4,69 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 class Core:
-
+    
     object_counter = 0
         
     def __init__(self):
         self.object_id = Core.object_counter
         Core.object_counter += 1
+    
+    def importCoordinates(coordinate, usecase):
+        dataline = []
+        filepath = '../inversion/DATA/RECTANGULARDUCT/DATA/'+coordinate+'coord_' + usecase + '.prof.txt'    
+        data = []
+        with open(filepath, 'r', encoding='latin-1') as fd:
+            for line in fd:
+                dataline = line.split()
+                if len(dataline) != 0:
+                    data = dataline
+            
+            DIM = len(data)
+                
+        fd.close()
+        
+        coord = np.zeros(DIM)
+        for ii in range(DIM-1):
+            coord[ii] = data[ii]
+        return coord, DIM
+
+    def importMeanVelocity(DIM_Y, DIM_Z, usecase):
+        filepath = '../inversion/DATA/RECTANGULARDUCT/DATA/U_' + usecase + '.prof.txt'    
+        U = np.zeros([DIM_Y, DIM_Z])
+    
+        counter = 0
+        with open(filepath, encoding='latin-1') as fd:
+            for i in range(24):
+                next(fd)
+            for line in fd:
+                dataline= line.split()
+                if len(dataline) == DIM_Z:
+                    U[counter,:] = dataline
+                    counter += 1
+                
+        fd.close()
+        
+        return U
+    
+    def plotMeanVelocity(self, RA, Retau):
+        for ra in RA:
+            usecase = str(ra)+'_'+str(Retau)
+            
+            zcoord, DIM_Z = Core.importCoordinates('z', usecase)
+            
+            if ra == 1: ## In case of a square grid, y and z are identical
+                ycoord = zcoord
+                DIM_Y = DIM_Z
+            else:
+                ycoord, DIM_Y = Core.importCoordinates('y', usecase)
+            
+            U = Core.importMeanVelocity(DIM_Y, DIM_Z, usecase) 
+            
+            fig = plt.figure(figsize=(ra,0.5))
+            plt.contourf(U, extent=(np.amin(zcoord), np.amax(zcoord), np.amin(ycoord), np.amax(ycoord)), cmap=plt.cm.Oranges)
+        
+        plt.tight_layout()
+        plt.show()
 
     #### Input: path to file relative to core.py file
     #### Output:
@@ -43,6 +100,7 @@ class Core:
         return S,R
 
 
+###################### Gradient ##################################
     def partialderivativeCD(u0, u1, u2, q0, q2):
         return (u0-2*u1+u2)/(q2-q0)
    
@@ -351,3 +409,5 @@ class Core:
 #        print(gradient_manual[0,grid_size-1])
 #        print('')
 #        
+                    
+                    
