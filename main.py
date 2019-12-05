@@ -1,3 +1,6 @@
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import matplotlib.gridspec as gridspec
 import numpy as np
 import matplotlib.pyplot as plt
 from nn import NN
@@ -46,6 +49,7 @@ def plot_results(predicted_stresses, true_stresses):
     plt.tight_layout()
     plt.show()
 
+
 def main():
 
     k, eps, grad_u, stresses = load_test_data()
@@ -63,7 +67,7 @@ def main():
     num_nodes = 30
 
     nn = NN(num_layers, num_nodes, num_inputs, num_outputs)
-    
+
 
     # plot_results(b, b)
 
