@@ -56,12 +56,11 @@ class Core:
                     counter += 1
                 
         fd.close()
-        
         return U
     
     def plotMeanVelocityComponent(self, RA, Retau, velocity_component):
         
-        fig = plt.figure(figsize=(10,30))
+        fig = plt.figure(1, figsize=(10,30))
         gs = fig.add_gridspec(6, 14)
         fig.suptitle('Mean velocity flow for $R_{\\tau}$ and different RA values for velocity compoment '+ velocity_component)
         fig.subplots_adjust(hspace = 1)
@@ -99,46 +98,14 @@ class Core:
     def plotMeanVelocityField(self, RA, Retau, data, ycoord, zcoord):
         x, y, z = np.meshgrid(ycoord[1:-1:10], zcoord[1:-1:10], np.zeros(1))
         
-        fig_field = plt.figure()
+        fig_field = plt.figure(2)
         ax = fig_field.gca(projection='3d')
         ax.quiver(x, y, z, data[1:-1:10,1:-1:10,0], data[1:-1:10,1:-1:10,1], data[1:-1:10,1:-1:10,2], length=0.05, normalize=True)
         ax.set_title('Mean Velocity field for $R_{\\tau}$ = '+str(Retau) +' and RA = '+str(RA))
         plt.show()
         
-        
-    #### Input: path to file relative to core.py file
-    #### Output:
-    def loadData(self, filepath):
 
-        with open(filepath, 'r') as f:
-            reader = csv.reader(f)
-            names = next(reader)
-            ubulk = next(reader)
-            print(names)
-            data_list = np.zeros([len(names), 100000])
-            for i,row in enumerate(reader):
-                if row:
-                    data_list[:,i] = np.array([float(ii) for ii in row])
-    
-        data_list = data_list[:,:i+1]
-        data = {}
-        for j,var in enumerate(names):
-            data[var] = data_list[j,:]
-
-        self.data = data
-
-    def calc_S_R(grad_u, k, eps, n):
-
-        S = np.zeros((n, 3, 3))
-        R = np.zeros((n, 3, 3))
-        for i in range(n):
-            S[i, :, :] = k[i]/eps[i] * 0.5 * (grad_u[i, :, :] + np.transpose(grad_u[i, :, :]))
-            R[i, :, :] = k[i]/eps[i] * 0.5 * (grad_u[i, :, :] - np.transpose(grad_u[i, :, :]))
-
-        return S,R
-
-
-###################### Gradient ##################################
+###################### Gradient ##############################################
     def partialderivativeCD(u0, u1, u2, q0, q2):
         return (u0-2*u1+u2)/(q2-q0)
    
@@ -166,15 +133,17 @@ class Core:
         else: 
             return uu[ii,jj-1], uu[ii,jj]
 
-    def calc_gradient(self):
-        data = self.data
-        grid_size = int(len(data['Y'])**0.5)
+    def gradient(self,data,ycoord, zcoord):
         
-        yy = np.reshape(data['Y'], [grid_size,grid_size])
-        zz = np.reshape(data['Z'], [grid_size,grid_size])
-        uu = np.reshape(data['um'],[grid_size,grid_size])
-        vv = np.reshape(data['vm'],[grid_size,grid_size])
-        ww = np.reshape(data['wm'],[grid_size,grid_size])
+        DIM_Y = len(ycoord)
+        DIM_Z = len(zcoord)
+        
+        
+        zz, yy = np.meshgrid(zcoord, ycoord)
+
+        uu = data[:,:,0]
+        vv = data[:,:,1]
+        ww = data[:,:,2]
         
         ## Create matrix containing u,v and w for every (x,y) data point
         ## Matrix[X, Y, 3 (u,v,w)]
@@ -183,21 +152,21 @@ class Core:
         ## Calculate gradient using numpy-function. Returns three lists, 
         ## each containing an array corresponding to the derivative to one dimension.
     
-        gradient = np.zeros([grid_size,grid_size,3,3])
+        gradient = np.zeros([DIM_Y,DIM_Z,3,3])
         
         ## As the flow is symmetric in the x-direction, the gradient in x-direction is always zero.
         ux_x = 0
         uy_x = 0
         uz_x = 0
         
-        for ii in range(grid_size):
-            for jj in range(grid_size):
+        for ii in range(DIM_Y):
+            for jj in range(DIM_Z):
                 
                 y1 = yy[ii,jj]
                 z1 = zz[ii,jj]
                 
                 ## Inside grid points
-                if ((ii > 0 and ii < grid_size-2) and (jj > 0 and jj < grid_size-2)):
+                if ((ii > 0 and ii < DIM_Y-2) and (jj > 0 and jj < DIM_Z-2)):
                     y0 = yy[ii-1,jj]
                     y2 = yy[ii+1,jj]
                     
@@ -222,7 +191,7 @@ class Core:
                     gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
                 
                 ## Upper boundary --> z = 0
-                if ((ii > 0 and ii < grid_size-2) and (jj == 0)):
+                if ((ii > 0 and ii < DIM_Y-2) and (jj == 0)):
                     y0 = yy[ii-1,jj]
                     y2 = yy[ii+1,jj]
                     
@@ -246,7 +215,7 @@ class Core:
                     gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
                 
                 ## Lower boundary --> z = grid_size-1
-                if ((ii > 0 and ii < grid_size-2) and (jj == grid_size-1)):
+                if ((ii > 0 and ii < DIM_Y-2) and (jj == DIM_Z-1)):
                     
                     y0 = yy[ii-1,jj]
                     y2 = yy[ii+1,jj]
@@ -271,7 +240,7 @@ class Core:
                     gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
                     
                 ## Left boundary --> y = 0
-                if ((ii == 0) and (jj > 0 and jj < grid_size-2)):
+                if ((ii == 0) and (jj > 0 and jj < DIM_Z-2)):
                     y2 = yy[ii+1,jj]
                     
                     z0 = zz[ii,jj-1]
@@ -295,7 +264,7 @@ class Core:
                     gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
                     
                 ## Right boundary --> y = grid_size - 1
-                if ((ii == grid_size-1) and (jj > 0 and jj < grid_size-2)):
+                if ((ii == DIM_Y-1) and (jj > 0 and jj < DIM_Z-2)):
                     y0 = yy[ii-1,jj]
                     
                     z0 = zz[ii,jj-1]
@@ -342,7 +311,7 @@ class Core:
                     gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])    
                     
                 ## Right-top corner --> y = grid_size-1, z = 0
-                if ((ii == grid_size-1) and (jj == 0)):
+                if ((ii == DIM_Y-1) and (jj == 0)):
                     y0 = yy[ii-1,jj]
                     
                     z2 = zz[ii,jj+1]
@@ -365,7 +334,7 @@ class Core:
                     gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])    
                     
                 ## Right-bottom corner --> y = grid_size-1, z = grid_size-1
-                if ((ii == grid_size-1) and (jj == grid_size-1)):
+                if ((ii == DIM_Y-1) and (jj == DIM_Z-1)):
                     y0 = yy[ii-1,jj]
                     
                     z0 = zz[ii,jj-1]
@@ -388,7 +357,7 @@ class Core:
                     gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])    
                     
                 ## Left-bottom corner --> y = 0, z = grid_size-1
-                if ((ii == 0) and (jj == grid_size-1)):
+                if ((ii == 0) and (jj == DIM_Z-1)):
                     y2 = yy[ii+1,jj]
                     
                     z0 = zz[ii,jj-1]
@@ -411,42 +380,3 @@ class Core:
                     gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]]) 
         
         return gradient
-##########   CODE FOR TESTING: PRINTS TENSOR FOR EACH DOMAIN   ##########
-#        print('Tensor at a normal grid point:')
-#        print(gradient[1,1,:,:])
-#        print('')
-#        
-#        print('Tensor at a upper boundary grid point:')
-#        print(gradient[1,0,:,:])            
-#        print('')
-#        
-#        print('Tensor at a lower boundary grid point:')            
-#        print(gradient[1,grid_size-1,:,:])
-#        print('')
-#        
-#        print('Tensor at a left boundary grid point:')            
-#        print(gradient[0,1,:,:])
-#        print('')
-#        
-#        print('Tensor at a right boundary grid point:')            
-#        print(gradient[grid_size-1,1,:,:])
-#        print('')
-#        
-#        print('Tensor at top-left corner grid point:')            
-#        print(gradient[0,0])
-#        print('')
-#        
-#        print('Tensor at top-right corner grid point:')            
-#        print(gradient[grid_size-1,0])
-#        print('')
-#        
-#        print('Tensor at bottom-right corner grid point:')            
-#        print(gradient[grid_size-1,grid_size-1])
-#        print('')
-#        
-#        print('Tensor at bottom-left corner grid point:')            
-#        print(gradient[0,grid_size-1])
-#        print('')
-#        
-                    
-                    
