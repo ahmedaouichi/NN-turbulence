@@ -4,7 +4,6 @@ import matplotlib.gridspec as gridspec
 import numpy as np
 from core import Core
 from nn import NN
-import math as m
 
 
 def main():

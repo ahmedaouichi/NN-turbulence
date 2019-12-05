@@ -2,6 +2,7 @@ import numpy as np
 import csv
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import math as m
 
 class Core:
     
@@ -49,7 +50,16 @@ class Core:
         return U
     
     def plotMeanVelocity(self, RA, Retau, velocity_component):
-        for ra in RA:
+        
+        fig = plt.figure(figsize=(10,30))
+        gs = fig.add_gridspec(6, 14)
+        fig.suptitle('Mean velocity flow for $R_{\\tau}$ and different RA values for velocity compoment '+ velocity_component)
+        fig.subplots_adjust(hspace = 1)
+        for ii in range(len(RA)):
+            ra = RA[ii]
+            ncols = RA[ii]-1
+            
+            ### Collect coordinates and mean velocity data
             usecase = str(ra)+'_'+str(Retau)
             
             zcoord, DIM_Z = Core.importCoordinates('z', usecase)
@@ -62,12 +72,27 @@ class Core:
             
             U = Core.importMeanVelocity(DIM_Y, DIM_Z, usecase, velocity_component) 
             
-            fig = plt.figure(figsize=(ra,0.5))
-            plt.contourf(U, extent=(np.amin(zcoord), np.amax(zcoord), np.amin(ycoord), np.amax(ycoord)), cmap=plt.cm.Oranges)
+            ### Create subplots
+            if (ncols == 0):
+                ax = fig.add_subplot(gs[ii, 0])
+            else:
+                ax = fig.add_subplot(gs[ii, 0:ncols])
+            
+            ### Add contour graphs to subplots
+            ax.contourf(U, extent=(np.amin(zcoord), np.amax(zcoord), np.amin(ycoord), np.amax(ycoord)), cmap=plt.cm.Oranges)
+            ax.set_title('RA = '+str(ra))
+            
+            if (ii == m.ceil(len(RA)/2)):
+                ax.set_ylabel('z: spanwise (a. u.)')
+            
+            if (ii == len(RA)-1):
+                ax.set_xlabel('y: wall normal (a. u. )')
+                
+                
+            
         
-        plt.tight_layout()
         plt.show()
-
+        
     #### Input: path to file relative to core.py file
     #### Output:
     def loadData(self, filepath):
