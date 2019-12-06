@@ -52,7 +52,7 @@ class Core:
                 next(fd)
             for line in fd:
                 dataline= line.split()
-                if len(dataline) == DIM_Z:
+                if len(dataline) == DIM_Z: ## Omit blank lines
                     U[counter,:] = dataline
                     counter += 1
 
@@ -60,25 +60,44 @@ class Core:
         
         return U
         
-    def importStressTensor(self, usecase):
+    def importStressTensor(self, usecase, DIM_Y, DIM_Z):
         ## Open appropriate file and read it out
 
         components = ['uu', 'uv', 'uw', 'vv', 'vw', 'ww']
-        tensor = defaultdict(list) 
+        data = defaultdict(list) 
         for ii in range(len(components)):
             comp = components[ii]
             filepath = '../inversion/DATA/RECTANGULARDUCT/DATA/'+comp+ '_' + usecase + '.prof.txt'    
-            tensor[comp]  = []
+            data[comp]  = []
             with open(filepath, 'r', encoding='latin-1') as fd:
                 for line in fd:
                     if line[0] != '%':
-                        tensor[comp].append(line.split())
+                        data[comp].append(line.split())
                         break
                     
                 for line in fd:
-                    tensor[comp].append(line.split())
+                    if len(line.split()) != 0: ## Omit blank lines
+                        data[comp].append(line.split())
                 
             fd.close()
+            
+        tensor = np.ones([DIM_Y, DIM_Z, 3,3])
+        counter = 1
+        for ii in range(DIM_Y):
+            for jj in range(DIM_Z):
+                tensor[ii,:,0,0] = data['uu'][ii]
+                tensor[ii,:,1,0] = data['uv'][ii]
+                tensor[ii,:,2,0] = data['uw'][ii]
+                
+                tensor[ii,:,0,1] = data['uv'][ii]
+                tensor[ii,:,1,1] = data['vv'][ii]
+                tensor[ii,:,2,1] = data['vw'][ii]
+                
+                tensor[ii,:,0,2] = data['uw'][ii]
+                tensor[ii,:,1,2] = data['vw'][ii]
+                tensor[ii,:,2,2] = data['ww'][ii]
+                
+                counter += 1
         
         return tensor
 

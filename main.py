@@ -38,17 +38,13 @@ def main():
     #core.plotMeanVelocityField(RA, Retau, data, ycoord, zcoord)
     
     grad_u = core.gradient(data, ycoord, zcoord) 
-    tensor = core.importStressTensor(usecase)
+    tensor = core.importStressTensor(usecase, DIM_Y, DIM_Z)
     
     ###########################################################################
-    
-#     tau = core.get_tau()
-#     u = core.get_u()
     
     ## To be written , for now using dataset
 #    k = core.calc_k()
 #    eps = core.calc_epsilon()
-#    n = core.get_n()
     
     k, eps, grad_u, stresses = Core.load_test_data()
     
