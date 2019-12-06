@@ -30,39 +30,41 @@ def main():
     for ii in range(DIM):
         data[:,:,ii] = core.importMeanVelocity(DIM_Y, DIM_Z, usecase, velocity_comps[ii])
 
-    ######### Visualization ##########
+    ############# Visualization ###############################################
     
     ## 3rd input argument refers to one of velocity components <U, V, W>
     #core.plotMeanVelocityComponent(RA_list, Retau, 'U')
     
     #core.plotMeanVelocityField(RA, Retau, data, ycoord, zcoord)
     
-    grad_u = core.gradient(data, ycoord, zcoord) 
+    velocity_gradient = core.gradient(data, ycoord, zcoord) 
     tensor = core.importStressTensor(usecase, DIM_Y, DIM_Z)
+    
+    
+    ############ Preparing network inputs #####################################
+    
+    eps = np.ones([DIM_Y, DIM_Z]) ## For now using epsilon=1 everywhere
+    k = core.calc_k(velocity_gradient)
+    S,R = core.calc_S_R(velocity_gradient, k, eps)
     
     ###########################################################################
     
-    ## To be written , for now using dataset
-#    k = core.calc_k()
-#    eps = core.calc_epsilon()
-    
-    k, eps, grad_u, stresses = Core.load_test_data()
-    
-    S,R = core.calc_S_R(grad_u, k, eps)
     
 #    eigen_values = core.calc_eigenvalues() ## To be written
 #    
-#    # nn.set_input(eigen_values)
-#    # nn.set_num_hidden_layers(num_layers)
-#    # nn.set_num_hidden_nodes(num_nodes)
-#    # nn.set_num_in_nodes(num_in_nodes)
-#    # nn.set_num_out_nodes(num_out_nodes)
-#    # nn.learning_rate(learning_rate)
-#    #
-#    # output = nn.train()
-#    # predict_tau = nn.calc_output(output)
-#    
+#    nn.set_input(eigen_values)
+#    nn.set_num_hidden_layers(num_layers)
+#    nn.set_num_hidden_nodes(num_nodes)
+#    nn.set_num_in_nodes(num_in_nodes)
+#    nn.set_num_out_nodes(num_out_nodes)
+#    nn.learning_rate(learning_rate)
+#
+#    output = nn.train()
+#    predict_tau = nn.calc_output(output)
+#   
+    k, eps, grad_u, stresses = Core.load_test_data()
     S, R = core.calc_S_R(grad_u, k, eps)
+    
     input = core.calc_scalar_basis(S, R)  # Scalar basis lamba's
     T = core.calc_T(S, R)  # Tensor basis T
     b = core.calc_output(stresses, k)  # b vector from tau tensor
@@ -79,5 +81,3 @@ def main():
     
     
 main()
-
-

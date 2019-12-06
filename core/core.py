@@ -148,13 +148,35 @@ class Core:
         plt.show()
 
     def calc_S_R(self, grad_u, k, eps):
-        n = grad_u.shape[0]
-        S = np.zeros((n, 3, 3))
-        R = np.zeros((n, 3, 3))
-        ke = k / eps
-        for i in range(n):
-            S[i, :, :] = ke[i] * 0.5 * (grad_u[i, :, :] + np.transpose(grad_u[i, :, :]))
-            R[i, :, :] = ke[i] * 0.5 * (grad_u[i, :, :] - np.transpose(grad_u[i, :, :]))
+        
+        ################### TEMPORARY #######################
+        #                                                   #
+        #                                                   #
+        if len(np.shape(grad_u)) == 3: ## This is the case for the test data used by Ahmed
+            n = grad_u.shape[0]
+            S = np.zeros((n, 3, 3))
+            R = np.zeros((n, 3, 3))
+            ke = k / eps
+            for i in range(n):
+                S[i, :, :] = ke[i] * 0.5 * (grad_u[i, :, :] + np.transpose(grad_u[i, :, :]))
+                R[i, :, :] = ke[i] * 0.5 * (grad_u[i, :, :] - np.transpose(grad_u[i, :, :]))
+        #                                                   #
+        #                                                   #
+        ################### TEMPORARY #######################
+
+        if len(np.shape(grad_u)) == 4: 
+            DIM_Y = grad_u.shape[0]
+            DIM_Z = grad_u.shape[1]
+            
+            S = np.zeros((DIM_Y, DIM_Z, 3, 3))
+            R = np.zeros((DIM_Y, DIM_Z, 3, 3))
+            
+            ke = k / eps
+            
+            for ii in range(DIM_Y):
+                for jj in range(DIM_Z):
+                    S[ii, jj, :, :] = ke[ii, jj] * 0.5 * (grad_u[ii, jj, :, :] + np.transpose(grad_u[ii, jj,  :, :]))
+                    R[ii, jj, :, :] = ke[ii, jj] * 0.5 * (grad_u[ii, jj, :, :] - np.transpose(grad_u[ii, jj, :,  :]))
 
         return S,R
 
@@ -209,6 +231,23 @@ class Core:
         return b_vector
 
 
+    def calc_k(self, velocity_gradient):
+        DIM_Y = np.shape(velocity_gradient)[0]
+        DIM_Z = np.shape(velocity_gradient)[1]
+        
+        k = np.zeros([DIM_Y, DIM_Z])
+        
+        ## Implementation of formula: k = 0.5*Tr(tau)
+        ## Tr(tau) = (sum of diagonal elements of tau)
+        
+        for ii in range(DIM_Y):
+            for jj in range(DIM_Z):
+                for cc in range(3):
+                    k[ii,jj] += velocity_gradient[ii,jj,cc,cc]
+        
+        k = 0.5*k
+        return k
+    
     def partialderivativeCD(u0, u1, u2, q0, q2):
         return (u0-2*u1+u2)/(q2-q0)
 
