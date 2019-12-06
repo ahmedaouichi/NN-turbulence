@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import math as m
 from mpl_toolkits.mplot3d import Axes3D
+from collections import defaultdict
 
 class Core:
 
@@ -59,6 +60,27 @@ class Core:
         
         return U
         
+    def importStressTensor(self, usecase):
+        ## Open appropriate file and read it out
+
+        components = ['uu', 'uv', 'uw', 'vv', 'vw', 'ww']
+        tensor = defaultdict(list) 
+        for ii in range(len(components)):
+            comp = components[ii]
+            filepath = '../inversion/DATA/RECTANGULARDUCT/DATA/'+comp+ '_' + usecase + '.prof.txt'    
+            tensor[comp]  = []
+            with open(filepath, 'r', encoding='latin-1') as fd:
+                for line in fd:
+                    if line[0] != '%':
+                        tensor[comp].append(line.split())
+                        break
+                    
+                for line in fd:
+                    tensor[comp].append(line.split())
+                
+            fd.close()
+        
+        return tensor
 
     def plotMeanVelocityComponent(self, RA, Retau, velocity_component):
 
@@ -440,3 +462,46 @@ class Core:
                     gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]]) 
         
         return gradient
+    
+    
+    def load_test_data():
+        data = np.loadtxt("nn/test_data.txt", skiprows=4)
+        k = data[:, 0]
+        eps = data[:, 1]
+        grad_u_flat = data[:, 2:11]
+        stresses_flat = data[:, 11:]
+    
+        num_points = data.shape[0]
+        grad_u = np.zeros((num_points, 3, 3))
+        stresses = np.zeros((num_points, 3, 3))
+        for i in range(3):
+            for j in range(3):
+                grad_u[:, i, j] = grad_u_flat[:, i*3+j]
+                stresses[:, i, j] = stresses_flat[:, i*3+j]
+    
+        return k, eps, grad_u, stresses
+    
+    def plot_results(predicted_stresses, true_stresses):
+    
+        fig = plt.figure()
+        fig.patch.set_facecolor('white')
+        on_diag = [0, 4, 8]
+        for i in range(9):
+                plt.subplot(3, 3, i+1)
+                ax = fig.gca()
+                ax.set_aspect('equal')
+                plt.plot([-1., 1.], [-1., 1.], 'r--')
+                plt.scatter(true_stresses[:, i], predicted_stresses[:, i])
+                plt.xlabel('True value')
+                plt.ylabel('Predicted value')
+                idx_1 = i / 3
+                idx_2 = i % 3
+                plt.title('A' + str(idx_1) + str(idx_2))
+                if i in on_diag:
+                    plt.xlim([-1./3., 2./3.])
+                    plt.ylim([-1./3., 2./3.])
+                else:
+                    plt.xlim([-0.5, 0.5])
+                    plt.ylim([-0.5, 0.5])
+        plt.tight_layout()
+        plt.show()
