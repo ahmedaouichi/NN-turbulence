@@ -148,35 +148,17 @@ class Core:
         plt.show()
 
     def calc_S_R(self, grad_u, k, eps):
+        DIM_Y = grad_u.shape[0]
+        DIM_Z = grad_u.shape[1]
         
-        ################### TEMPORARY #######################
-        #                                                   #
-        #                                                   #
-        if len(np.shape(grad_u)) == 3: ## This is the case for the test data used by Ahmed
-            n = grad_u.shape[0]
-            S = np.zeros((n, 3, 3))
-            R = np.zeros((n, 3, 3))
-            ke = k / eps
-            for i in range(n):
-                S[i, :, :] = ke[i] * 0.5 * (grad_u[i, :, :] + np.transpose(grad_u[i, :, :]))
-                R[i, :, :] = ke[i] * 0.5 * (grad_u[i, :, :] - np.transpose(grad_u[i, :, :]))
-        #                                                   #
-        #                                                   #
-        ################### TEMPORARY #######################
-
-        if len(np.shape(grad_u)) == 4: 
-            DIM_Y = grad_u.shape[0]
-            DIM_Z = grad_u.shape[1]
-            
-            S = np.zeros((DIM_Y, DIM_Z, 3, 3))
-            R = np.zeros((DIM_Y, DIM_Z, 3, 3))
-            
-            ke = k / eps
-            
-            for ii in range(DIM_Y):
-                for jj in range(DIM_Z):
-                    S[ii, jj, :, :] = ke[ii, jj] * 0.5 * (grad_u[ii, jj, :, :] + np.transpose(grad_u[ii, jj,  :, :]))
-                    R[ii, jj, :, :] = ke[ii, jj] * 0.5 * (grad_u[ii, jj, :, :] - np.transpose(grad_u[ii, jj, :,  :]))
+        S = np.zeros((DIM_Y, DIM_Z, 3, 3))
+        R = np.zeros((DIM_Y, DIM_Z, 3, 3))
+        ke = k / eps
+        
+        for ii in range(DIM_Y):
+            for jj in range(DIM_Z):
+                S[ii, jj, :, :] = ke[ii, jj] * 0.5 * (grad_u[ii, jj, :, :] + np.transpose(grad_u[ii, jj,  :, :]))
+                R[ii, jj, :, :] = ke[ii, jj] * 0.5 * (grad_u[ii, jj, :, :] - np.transpose(grad_u[ii, jj, :,  :]))
 
         return S,R
 
@@ -202,15 +184,17 @@ class Core:
         return T
 
     def calc_scalar_basis(self, S, R):
-        num_points = S.shape[0]
-        num_eigenvalues = 5
-        eigenvalues = np.zeros((num_points, num_eigenvalues))
-        for i in range(num_points):
-            eigenvalues[i, 0] = np.trace(np.dot(S[i, :, :], S[i, :, :]))
-            eigenvalues[i, 1] = np.trace(np.dot(R[i, :, :], R[i, :, :]))
-            eigenvalues[i, 2] = np.trace(np.dot(S[i, :, :], np.dot(S[i, :, :], S[i, :, :])))
-            eigenvalues[i, 3] = np.trace(np.dot(R[i, :, :], np.dot(R[i, :, :], S[i, :, :])))
-            eigenvalues[i, 4] = np.trace(np.dot(np.dot(R[i, :, :], R[i, :, :]), np.dot(S[i, :, :], S[i, :, :])))
+        DIM_Y = R.shape[0]
+        DIM_Z = R.shape[1]
+    
+        eigenvalues = np.zeros([DIM_Y, DIM_Z, 5])
+        for ii in range(DIM_Y):
+            for jj in range(DIM_Z):
+                eigenvalues[ii, jj, 0] = np.trace(np.dot(S[ii, jj, :, :], S[ii, jj, :, :]))
+                eigenvalues[ii, jj, 1] = np.trace(np.dot(R[ii, jj, :, :], R[ii, jj, :, :]))
+                eigenvalues[ii, jj, 2] = np.trace(np.dot(S[ii, jj, :, :], np.dot(S[ii, jj, :, :], S[ii, jj, :, :])))
+                eigenvalues[ii, jj, 3] = np.trace(np.dot(R[ii, jj, :, :], np.dot(R[ii, jj, :, :], S[ii, jj, :, :])))
+                eigenvalues[ii, jj, 4] = np.trace(np.dot(np.dot(R[ii, jj, :, :], R[ii, jj, :, :]), np.dot(S[ii, jj, :, :], S[ii, jj, :, :])))
 
         return eigenvalues
 
