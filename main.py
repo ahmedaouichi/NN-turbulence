@@ -5,9 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from nn import NN
 from core import Core
-#from keras.models import Sequential
-#from keras.layers import Dense
-#import keras.backend as K
+from keras.models import Sequential
+from keras.layers import Dense, Lambda
+import keras.backend as K
 
 
 def main():
@@ -25,7 +25,7 @@ def main():
     RA = RA_list[0]
     usecase =  str(RA)+'_'+str(Retau)
     
-    print('--> Import grid')
+    print('--> Import coordinate system')
     ycoord, DIM_Y = Core.importCoordinates('y', usecase)
     zcoord, DIM_Z = Core.importCoordinates('z', usecase)
     
@@ -57,43 +57,46 @@ def main():
     S,R = core.calc_S_R(velocity_gradient, k, eps)
     print('--> Compute eigenvalues for network input')
     eigenvalues = core.calc_scalar_basis(S, R)  # Scalar basis lamba's
+    print('--> Compute tensor basis')
+    #tensorbasis = core.calc_tensor_basis(S, R)
+    #print(np.shape(tensorbasis))
+    
     
     ############  Building neural network  ####################################
     
-    #T = core.calc_T(S, R)  # Tensor basis T
-   
-    #print(input.shape)
-    #num_inputs = input.shape[1]
-#    num_outputs = b.shape[1]
-#    num_layers = 8
-#    num_nodes = 30
+    number_layers = 8
+    number_nodes = 30
 #    
-#    nn = NN(num_layers, num_nodes, num_inputs, num_outputs)
 #    
-#    #Core.plot_results(b, b)
-#    
-#    def customLoss(yTrue,yPred):
-#        return K.sum((yTrue - yPred)**2)**0.5
-#    
-#    # load the dataset
-#    dataset = np.loadtxt('pima-indians-diabetes.csv', delimiter=',')
-#    # split into input (X) and output (y) variables
-#    
-#    X = dataset[:,0:8]
-#    y = dataset[:,8]
-#    # define the keras model
-#    model = Sequential()
-#    model.add(Dense(12, input_dim=8, activation='relu'))
-#    model.add(Dense(8, activation='relu'))
-#    model.add(Dense(1, activation='sigmoid'))
-#    # compile the keras model
-#    model.compile(loss=customLoss, optimizer='adam', metrics=['accuracy'])
-#    # fit the keras model on the dataset
-#    model.fit(X, y, epochs=10, batch_size=10)
-#    # evaluate the keras model
-#    _, accuracy = model.evaluate(X, y)
-#    print('Accuracy: %.2f' % (accuracy*100))
+    def customLoss(yTrue,yPred):
+        return K.sum((yTrue - yPred)**2)**0.5
     
+    input_size = DIM_Y*DIM_Z
+    print(np.shape(eigenvalues))
+    X = np.reshape(eigenvalues, [input_size, 5]) ## rearange 2d matrix to 1d matrix
+    Y = np.tile(np.arange(0,10), (input_size, 1)) ## Here we need a list of g values, which we don't know how to obtain them
+    
+    # define the keras model
+    model = Sequential()
+    model.add(Dense(30, input_dim=5, activation='relu'))
+    model.add(Dense(30, activation='relu'))
+    model.add(Dense(30, activation='relu'))
+    model.add(Dense(30, activation='relu'))
+    model.add(Dense(30, activation='relu'))
+    model.add(Dense(30, activation='relu'))
+    model.add(Dense(30, activation='relu'))
+    model.add(Dense(10, activation='relu'))
+    
+    # compile the keras model
+    model.compile(loss=customLoss, optimizer='adam', metrics=['accuracy'])
+    
+    # fit the keras model on the dataset
+    model.fit(X, Y, epochs=2, batch_size=10)
+    
+    # evaluate the keras model
+    _, accuracy = model.evaluate(X, Y)
+    print('Accuracy: %.2f' % (accuracy*100))
+   
     
 main()
 

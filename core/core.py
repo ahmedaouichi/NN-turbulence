@@ -162,24 +162,25 @@ class Core:
 
         return S,R
 
-    def calc_T(self, S, R):
-
-        num_points = S.shape[0]
-        num_tensor_basis = 10
-        T = np.zeros((num_points, num_tensor_basis, 3, 3))
-        for i in range(num_points):
-            sij = S[i, :, :]
-            rij = R[i, :, :]
-            T[i, 0, :, :] = sij
-            T[i, 1, :, :] = np.dot(sij, rij) - np.dot(rij, sij)
-            T[i, 2, :, :] = np.dot(sij, sij) - 1./3.*np.eye(3)*np.trace(np.dot(sij, sij))
-            T[i, 3, :, :] = np.dot(rij, rij) - 1./3.*np.eye(3)*np.trace(np.dot(rij, rij))
-            T[i, 4, :, :] = np.dot(rij, np.dot(sij, sij)) - np.dot(np.dot(sij, sij), rij)
-            T[i, 5, :, :] = np.dot(rij, np.dot(rij, sij)) + np.dot(sij, np.dot(rij, rij)) - 2./3.*np.eye(3)*np.trace(np.dot(sij, np.dot(rij, rij)))
-            T[i, 6, :, :] = np.dot(np.dot(rij, sij), np.dot(rij, rij)) - np.dot(np.dot(rij, rij), np.dot(sij, rij))
-            T[i, 7, :, :] = np.dot(np.dot(sij, rij), np.dot(sij, sij)) - np.dot(np.dot(sij, sij), np.dot(rij, sij))
-            T[i, 8, :, :] = np.dot(np.dot(rij, rij), np.dot(sij, sij)) + np.dot(np.dot(sij, sij), np.dot(rij, rij))- 2./3.*np.eye(3)*np.trace(np.dot(np.dot(sij, sij), np.dot(rij, rij)))
-            T[i, 9, :, :] = np.dot(np.dot(rij, np.dot(sij, sij)), np.dot(rij, rij)) - np.dot(np.dot(rij, np.dot(rij, sij)), np.dot(sij, rij))
+    def calc_tensor_basis(self, S, R):
+        DIM_Y = S.shape[0]
+        DIM_Z = S.shape[1]
+        
+        T = np.zeros((DIM_Y, DIM_Z, 10, 3, 3))
+        for ii in range(DIM_Y):
+            for jj in range(DIM_Z):
+                sij = S[ii, jj, :, :]
+                rij = R[ii, jj, :, :]
+                T[ii, jj, 0, :, :] = sij
+                T[ii, jj, 1, :, :] = np.dot(sij, rij) - np.dot(rij, sij)
+                T[ii, jj, 2, :, :] = np.dot(sij, sij) - 1./3.*np.eye(3)*np.trace(np.dot(sij, sij))
+                T[ii, jj, 3, :, :] = np.dot(rij, rij) - 1./3.*np.eye(3)*np.trace(np.dot(rij, rij))
+                T[ii, jj, 4, :, :] = np.dot(rij, np.dot(sij, sij)) - np.dot(np.dot(sij, sij), rij)
+                T[ii, jj, 5, :, :] = np.dot(rij, np.dot(rij, sij)) + np.dot(sij, np.dot(rij, rij)) - 2./3.*np.eye(3)*np.trace(np.dot(sij, np.dot(rij, rij)))
+                T[ii, jj, 6, :, :] = np.dot(np.dot(rij, sij), np.dot(rij, rij)) - np.dot(np.dot(rij, rij), np.dot(sij, rij))
+                T[ii, jj, 7, :, :] = np.dot(np.dot(sij, rij), np.dot(sij, sij)) - np.dot(np.dot(sij, sij), np.dot(rij, sij))
+                T[ii, jj, 8, :, :] = np.dot(np.dot(rij, rij), np.dot(sij, sij)) + np.dot(np.dot(sij, sij), np.dot(rij, rij))- 2./3.*np.eye(3)*np.trace(np.dot(np.dot(sij, sij), np.dot(rij, rij)))
+                T[ii, jj, 9, :, :] = np.dot(np.dot(rij, np.dot(sij, sij)), np.dot(rij, rij)) - np.dot(np.dot(rij, np.dot(rij, sij)), np.dot(sij, rij))
 
         return T
 
