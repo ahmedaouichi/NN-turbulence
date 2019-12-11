@@ -1,8 +1,5 @@
 import matplotlib.pyplot as plt
-import matplotlib as mpl
-import matplotlib.gridspec as gridspec
 import numpy as np
-import matplotlib.pyplot as plt
 from nn import NN
 from core import Core
 
@@ -60,16 +57,10 @@ def main():
     T = core.calc_T(S, R)  # Tensor basis T
     b = core.calc_output(stresses, k)  # b vector from tau tensor
 
-    print(input.shape)
-    num_inputs = input.shape[1]
-    num_outputs = b.shape[1]
-    num_layers = 8
-    num_nodes = 30
+    nn = NN(8, 30, input.shape[1], T.shape[1], b.shape[1])
+    result = nn.build(input, T, b)
 
-    nn = NN(num_layers, num_nodes, num_inputs, num_outputs)
-
-
-    # plot_results(b, b)
+    plot_results(result, b)
 
 
 main()

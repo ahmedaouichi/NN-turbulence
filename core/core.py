@@ -159,8 +159,12 @@ class Core:
             T[i, 8, :, :] = np.dot(np.dot(rij, rij), np.dot(sij, sij)) + np.dot(np.dot(sij, sij), np.dot(rij, rij))- 2./3.*np.eye(3)*np.trace(np.dot(np.dot(sij, sij), np.dot(rij, rij)))
             T[i, 9, :, :] = np.dot(np.dot(rij, np.dot(sij, sij)), np.dot(rij, rij)) - np.dot(np.dot(rij, np.dot(rij, sij)), np.dot(sij, rij))
 
-        return T
-
+        T_flat = np.zeros((num_points, num_tensor_basis, 9))
+        for i in range(3):
+            for j in range(3):
+                T_flat[:, :, 3*i+j] = T[:, :, i, j]
+        return T_flat
+    
     def calc_scalar_basis(self, S, R):
         num_points = S.shape[0]
         num_eigenvalues = 5
