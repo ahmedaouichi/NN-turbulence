@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import math as m
 from mpl_toolkits.mplot3d import Axes3D
+from collections import defaultdict
 
 class Core:
 
@@ -51,17 +52,58 @@ class Core:
                 next(fd)
             for line in fd:
                 dataline= line.split()
-                if len(dataline) == DIM_Z:
+                if len(dataline) == DIM_Z: ## Omit blank lines
                     U[counter,:] = dataline
                     counter += 1
 
         fd.close()
-
+        
         return U
+        
+    def importStressTensor(self, usecase, DIM_Y, DIM_Z):
+        ## Open appropriate file and read it out
+
+        components = ['uu', 'uv', 'uw', 'vv', 'vw', 'ww']
+        data = defaultdict(list) 
+        for ii in range(len(components)):
+            comp = components[ii]
+            filepath = '../inversion/DATA/RECTANGULARDUCT/DATA/'+comp+ '_' + usecase + '.prof.txt'    
+            data[comp]  = []
+            with open(filepath, 'r', encoding='latin-1') as fd:
+                for line in fd:
+                    if line[0] != '%':
+                        data[comp].append(line.split())
+                        break
+                    
+                for line in fd:
+                    if len(line.split()) != 0: ## Omit blank lines
+                        data[comp].append(line.split())
+                
+            fd.close()
+            
+        tensor = np.ones([DIM_Y, DIM_Z, 3,3])
+        counter = 1
+        for ii in range(DIM_Y):
+            for jj in range(DIM_Z):
+                tensor[ii,:,0,0] = data['uu'][ii]
+                tensor[ii,:,1,0] = data['uv'][ii]
+                tensor[ii,:,2,0] = data['uw'][ii]
+                
+                tensor[ii,:,0,1] = data['uv'][ii]
+                tensor[ii,:,1,1] = data['vv'][ii]
+                tensor[ii,:,2,1] = data['vw'][ii]
+                
+                tensor[ii,:,0,2] = data['uw'][ii]
+                tensor[ii,:,1,2] = data['vw'][ii]
+                tensor[ii,:,2,2] = data['ww'][ii]
+                
+                counter += 1
+        
+        return tensor
 
     def plotMeanVelocityComponent(self, RA, Retau, velocity_component):
 
-        fig = plt.figure(figsize=(10,30))
+        fig = plt.figure(1,figsize=(10,30))
         gs = fig.add_gridspec(6, 14)
         fig.suptitle('Mean velocity flow for $R_{\\tau}$ and different RA values for velocity compoment '+ velocity_component)
         fig.subplots_adjust(hspace = 1)
@@ -98,66 +140,47 @@ class Core:
 
     def plotMeanVelocityField(self, RA, Retau, data, ycoord, zcoord):
         x, y, z = np.meshgrid(ycoord[1:-1:10], zcoord[1:-1:10], np.zeros(1))
-
-        fig_field = plt.figure()
+        
+        fig_field = plt.figure(2)
         ax = fig_field.gca(projection='3d')
         ax.quiver(x, y, z, data[1:-1:10,1:-1:10,0], data[1:-1:10,1:-1:10,1], data[1:-1:10,1:-1:10,2], length=0.05, normalize=True)
         ax.set_title('Mean Velocity field for $R_{\\tau}$ = '+str(Retau) +' and RA = '+str(RA))
         plt.show()
 
-
-    #### Input: path to file relative to core.py file
-    #### Output:
-    def loadData(self, filepath):
-
-        with open(filepath, 'r') as f:
-            reader = csv.reader(f)
-            names = next(reader)
-            ubulk = next(reader)
-            print(names)
-            data_list = np.zeros([len(names), 100000])
-            for i,row in enumerate(reader):
-                if row:
-                    data_list[:,i] = np.array([float(ii) for ii in row])
-
-        data_list = data_list[:,:i+1]
-        data = {}
-        for j,var in enumerate(names):
-            data[var] = data_list[j,:]
-
-        self.data = data
-
-        return self.data
-
     def calc_S_R(self, grad_u, k, eps):
-        n = grad_u.shape[0]
-        S = np.zeros((n, 3, 3))
-        R = np.zeros((n, 3, 3))
+        DIM_Y = grad_u.shape[0]
+        DIM_Z = grad_u.shape[1]
+        
+        S = np.zeros((DIM_Y, DIM_Z, 3, 3))
+        R = np.zeros((DIM_Y, DIM_Z, 3, 3))
         ke = k / eps
-        for i in range(n):
-            S[i, :, :] = ke[i] * 0.5 * (grad_u[i, :, :] + np.transpose(grad_u[i, :, :]))
-            R[i, :, :] = ke[i] * 0.5 * (grad_u[i, :, :] - np.transpose(grad_u[i, :, :]))
+        
+        for ii in range(DIM_Y):
+            for jj in range(DIM_Z):
+                S[ii, jj, :, :] = ke[ii, jj] * 0.5 * (grad_u[ii, jj, :, :] + np.transpose(grad_u[ii, jj,  :, :]))
+                R[ii, jj, :, :] = ke[ii, jj] * 0.5 * (grad_u[ii, jj, :, :] - np.transpose(grad_u[ii, jj, :,  :]))
 
         return S,R
 
-    def calc_T(self, S, R):
-
-        num_points = S.shape[0]
-        num_tensor_basis = 10
-        T = np.zeros((num_points, num_tensor_basis, 3, 3))
-        for i in range(num_points):
-            sij = S[i, :, :]
-            rij = R[i, :, :]
-            T[i, 0, :, :] = sij
-            T[i, 1, :, :] = np.dot(sij, rij) - np.dot(rij, sij)
-            T[i, 2, :, :] = np.dot(sij, sij) - 1./3.*np.eye(3)*np.trace(np.dot(sij, sij))
-            T[i, 3, :, :] = np.dot(rij, rij) - 1./3.*np.eye(3)*np.trace(np.dot(rij, rij))
-            T[i, 4, :, :] = np.dot(rij, np.dot(sij, sij)) - np.dot(np.dot(sij, sij), rij)
-            T[i, 5, :, :] = np.dot(rij, np.dot(rij, sij)) + np.dot(sij, np.dot(rij, rij)) - 2./3.*np.eye(3)*np.trace(np.dot(sij, np.dot(rij, rij)))
-            T[i, 6, :, :] = np.dot(np.dot(rij, sij), np.dot(rij, rij)) - np.dot(np.dot(rij, rij), np.dot(sij, rij))
-            T[i, 7, :, :] = np.dot(np.dot(sij, rij), np.dot(sij, sij)) - np.dot(np.dot(sij, sij), np.dot(rij, sij))
-            T[i, 8, :, :] = np.dot(np.dot(rij, rij), np.dot(sij, sij)) + np.dot(np.dot(sij, sij), np.dot(rij, rij))- 2./3.*np.eye(3)*np.trace(np.dot(np.dot(sij, sij), np.dot(rij, rij)))
-            T[i, 9, :, :] = np.dot(np.dot(rij, np.dot(sij, sij)), np.dot(rij, rij)) - np.dot(np.dot(rij, np.dot(rij, sij)), np.dot(sij, rij))
+    def calc_tensor_basis(self, S, R):
+        DIM_Y = S.shape[0]
+        DIM_Z = S.shape[1]
+        
+        T = np.zeros((DIM_Y, DIM_Z, 10, 3, 3))
+        for ii in range(DIM_Y):
+            for jj in range(DIM_Z):
+                sij = S[ii, jj, :, :]
+                rij = R[ii, jj, :, :]
+                T[ii, jj, 0, :, :] = sij
+                T[ii, jj, 1, :, :] = np.dot(sij, rij) - np.dot(rij, sij)
+                T[ii, jj, 2, :, :] = np.dot(sij, sij) - 1./3.*np.eye(3)*np.trace(np.dot(sij, sij))
+                T[ii, jj, 3, :, :] = np.dot(rij, rij) - 1./3.*np.eye(3)*np.trace(np.dot(rij, rij))
+                T[ii, jj, 4, :, :] = np.dot(rij, np.dot(sij, sij)) - np.dot(np.dot(sij, sij), rij)
+                T[ii, jj, 5, :, :] = np.dot(rij, np.dot(rij, sij)) + np.dot(sij, np.dot(rij, rij)) - 2./3.*np.eye(3)*np.trace(np.dot(sij, np.dot(rij, rij)))
+                T[ii, jj, 6, :, :] = np.dot(np.dot(rij, sij), np.dot(rij, rij)) - np.dot(np.dot(rij, rij), np.dot(sij, rij))
+                T[ii, jj, 7, :, :] = np.dot(np.dot(sij, rij), np.dot(sij, sij)) - np.dot(np.dot(sij, sij), np.dot(rij, sij))
+                T[ii, jj, 8, :, :] = np.dot(np.dot(rij, rij), np.dot(sij, sij)) + np.dot(np.dot(sij, sij), np.dot(rij, rij))- 2./3.*np.eye(3)*np.trace(np.dot(np.dot(sij, sij), np.dot(rij, rij)))
+                T[ii, jj, 9, :, :] = np.dot(np.dot(rij, np.dot(sij, sij)), np.dot(rij, rij)) - np.dot(np.dot(rij, np.dot(rij, sij)), np.dot(sij, rij))
 
         T_flat = np.zeros((num_points, num_tensor_basis, 9))
         for i in range(3):
@@ -166,15 +189,17 @@ class Core:
         return T_flat
     
     def calc_scalar_basis(self, S, R):
-        num_points = S.shape[0]
-        num_eigenvalues = 5
-        eigenvalues = np.zeros((num_points, num_eigenvalues))
-        for i in range(num_points):
-            eigenvalues[i, 0] = np.trace(np.dot(S[i, :, :], S[i, :, :]))
-            eigenvalues[i, 1] = np.trace(np.dot(R[i, :, :], R[i, :, :]))
-            eigenvalues[i, 2] = np.trace(np.dot(S[i, :, :], np.dot(S[i, :, :], S[i, :, :])))
-            eigenvalues[i, 3] = np.trace(np.dot(R[i, :, :], np.dot(R[i, :, :], S[i, :, :])))
-            eigenvalues[i, 4] = np.trace(np.dot(np.dot(R[i, :, :], R[i, :, :]), np.dot(S[i, :, :], S[i, :, :])))
+        DIM_Y = R.shape[0]
+        DIM_Z = R.shape[1]
+    
+        eigenvalues = np.zeros([DIM_Y, DIM_Z, 5])
+        for ii in range(DIM_Y):
+            for jj in range(DIM_Z):
+                eigenvalues[ii, jj, 0] = np.trace(np.dot(S[ii, jj, :, :], S[ii, jj, :, :]))
+                eigenvalues[ii, jj, 1] = np.trace(np.dot(R[ii, jj, :, :], R[ii, jj, :, :]))
+                eigenvalues[ii, jj, 2] = np.trace(np.dot(S[ii, jj, :, :], np.dot(S[ii, jj, :, :], S[ii, jj, :, :])))
+                eigenvalues[ii, jj, 3] = np.trace(np.dot(R[ii, jj, :, :], np.dot(R[ii, jj, :, :], S[ii, jj, :, :])))
+                eigenvalues[ii, jj, 4] = np.trace(np.dot(np.dot(R[ii, jj, :, :], R[ii, jj, :, :]), np.dot(S[ii, jj, :, :], S[ii, jj, :, :])))
 
         return eigenvalues
 
@@ -194,7 +219,24 @@ class Core:
                 b_vector[:, 3*i+j] = b[:, i, j]
         return b_vector
 
-###################### Gradient ##################################
+
+    def calc_k(self, velocity_gradient):
+        DIM_Y = np.shape(velocity_gradient)[0]
+        DIM_Z = np.shape(velocity_gradient)[1]
+        
+        k = np.zeros([DIM_Y, DIM_Z])
+        
+        ## Implementation of formula: k = 0.5*Tr(tau)
+        ## Tr(tau) = (sum of diagonal elements of tau)
+        
+        for ii in range(DIM_Y):
+            for jj in range(DIM_Z):
+                for cc in range(3):
+                    k[ii,jj] += velocity_gradient[ii,jj,cc,cc]
+        
+        k = 0.5*k
+        return k
+    
     def partialderivativeCD(u0, u1, u2, q0, q2):
         return (u0-2*u1+u2)/(q2-q0)
 
@@ -222,38 +264,39 @@ class Core:
         else:
             return uu[ii,jj-1], uu[ii,jj]
 
-    def calc_gradient(self):
-        data = self.data
-        grid_size = int(len(data['Y'])**0.5)
+    def gradient(self,data,ycoord, zcoord):
+        
+        DIM_Y = len(ycoord)
+        DIM_Z = len(zcoord)
+        
+        
+        zz, yy = np.meshgrid(zcoord, ycoord)
 
-        yy = np.reshape(data['Y'], [grid_size,grid_size])
-        zz = np.reshape(data['Z'], [grid_size,grid_size])
-        uu = np.reshape(data['um'],[grid_size,grid_size])
-        vv = np.reshape(data['vm'],[grid_size,grid_size])
-        ww = np.reshape(data['wm'],[grid_size,grid_size])
-
+        uu = data[:,:,0]
+        vv = data[:,:,1]
+        ww = data[:,:,2]
+        
         ## Create matrix containing u,v and w for every (x,y) data point
         ## Matrix[X, Y, 3 (u,v,w)]
         u = np.array([uu,vv,ww])
 
         ## Calculate gradient using numpy-function. Returns three lists,
         ## each containing an array corresponding to the derivative to one dimension.
-
-        gradient = np.zeros([grid_size,grid_size,3,3])
+    
+        gradient = np.zeros([DIM_Y,DIM_Z,3,3])
 
         ## As the flow is symmetric in the x-direction, the gradient in x-direction is always zero.
         ux_x = 0
         uy_x = 0
         uz_x = 0
-
-        for ii in range(grid_size):
-            for jj in range(grid_size):
-
+        
+        for ii in range(DIM_Y):
+            for jj in range(DIM_Z):
                 y1 = yy[ii,jj]
                 z1 = zz[ii,jj]
 
                 ## Inside grid points
-                if ((ii > 0 and ii < grid_size-2) and (jj > 0 and jj < grid_size-2)):
+                if ((ii > 0 and ii < DIM_Y-2) and (jj > 0 and jj < DIM_Z-2)):
                     y0 = yy[ii-1,jj]
                     y2 = yy[ii+1,jj]
 
@@ -278,7 +321,7 @@ class Core:
                     gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
 
                 ## Upper boundary --> z = 0
-                if ((ii > 0 and ii < grid_size-2) and (jj == 0)):
+                if ((ii > 0 and ii < DIM_Y-2) and (jj == 0)):
                     y0 = yy[ii-1,jj]
                     y2 = yy[ii+1,jj]
 
@@ -302,8 +345,7 @@ class Core:
                     gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
 
                 ## Lower boundary --> z = grid_size-1
-                if ((ii > 0 and ii < grid_size-2) and (jj == grid_size-1)):
-
+                if ((ii > 0 and ii < DIM_Y-2) and (jj == DIM_Z-1)):
                     y0 = yy[ii-1,jj]
                     y2 = yy[ii+1,jj]
 
@@ -327,7 +369,7 @@ class Core:
                     gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
 
                 ## Left boundary --> y = 0
-                if ((ii == 0) and (jj > 0 and jj < grid_size-2)):
+                if ((ii == 0) and (jj > 0 and jj < DIM_Z-2)):
                     y2 = yy[ii+1,jj]
 
                     z0 = zz[ii,jj-1]
@@ -351,7 +393,7 @@ class Core:
                     gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
 
                 ## Right boundary --> y = grid_size - 1
-                if ((ii == grid_size-1) and (jj > 0 and jj < grid_size-2)):
+                if ((ii == DIM_Y-1) and (jj > 0 and jj < DIM_Z-2)):
                     y0 = yy[ii-1,jj]
 
                     z0 = zz[ii,jj-1]
@@ -398,7 +440,7 @@ class Core:
                     gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
 
                 ## Right-top corner --> y = grid_size-1, z = 0
-                if ((ii == grid_size-1) and (jj == 0)):
+                if ((ii == DIM_Y-1) and (jj == 0)):
                     y0 = yy[ii-1,jj]
 
                     z2 = zz[ii,jj+1]
@@ -421,7 +463,7 @@ class Core:
                     gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
 
                 ## Right-bottom corner --> y = grid_size-1, z = grid_size-1
-                if ((ii == grid_size-1) and (jj == grid_size-1)):
+                if ((ii == DIM_Y-1) and (jj == DIM_Z-1)):
                     y0 = yy[ii-1,jj]
 
                     z0 = zz[ii,jj-1]
@@ -444,7 +486,7 @@ class Core:
                     gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
 
                 ## Left-bottom corner --> y = 0, z = grid_size-1
-                if ((ii == 0) and (jj == grid_size-1)):
+                if ((ii == 0) and (jj == DIM_Z-1)):
                     y2 = yy[ii+1,jj]
 
                     z0 = zz[ii,jj-1]
@@ -463,44 +505,50 @@ class Core:
                     ux_z = Core.partialderivativeBD(u_z0, u_z1, z0, z1)
                     uy_z = Core.partialderivativeBD(v_z0, v_z1, z0, z1)
                     uz_z = Core.partialderivativeBD(w_z0, w_z1, z0, z1)
-
-                    gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
-
+                    
+                    gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]]) 
+        
         return gradient
-##########   CODE FOR TESTING: PRINTS TENSOR FOR EACH DOMAIN   ##########
-#        print('Tensor at a normal grid point:')
-#        print(gradient[1,1,:,:])
-#        print('')
-#
-#        print('Tensor at a upper boundary grid point:')
-#        print(gradient[1,0,:,:])
-#        print('')
-#
-#        print('Tensor at a lower boundary grid point:')
-#        print(gradient[1,grid_size-1,:,:])
-#        print('')
-#
-#        print('Tensor at a left boundary grid point:')
-#        print(gradient[0,1,:,:])
-#        print('')
-#
-#        print('Tensor at a right boundary grid point:')
-#        print(gradient[grid_size-1,1,:,:])
-#        print('')
-#
-#        print('Tensor at top-left corner grid point:')
-#        print(gradient[0,0])
-#        print('')
-#
-#        print('Tensor at top-right corner grid point:')
-#        print(gradient[grid_size-1,0])
-#        print('')
-#
-#        print('Tensor at bottom-right corner grid point:')
-#        print(gradient[grid_size-1,grid_size-1])
-#        print('')
-#
-#        print('Tensor at bottom-left corner grid point:')
-#        print(gradient[0,grid_size-1])
-#        print('')
-#
+    
+    
+    def load_test_data():
+        data = np.loadtxt("nn/test_data.txt", skiprows=4)
+        k = data[:, 0]
+        eps = data[:, 1]
+        grad_u_flat = data[:, 2:11]
+        stresses_flat = data[:, 11:]
+    
+        num_points = data.shape[0]
+        grad_u = np.zeros((num_points, 3, 3))
+        stresses = np.zeros((num_points, 3, 3))
+        for i in range(3):
+            for j in range(3):
+                grad_u[:, i, j] = grad_u_flat[:, i*3+j]
+                stresses[:, i, j] = stresses_flat[:, i*3+j]
+    
+        return k, eps, grad_u, stresses
+    
+    def plot_results(predicted_stresses, true_stresses):
+    
+        fig = plt.figure()
+        fig.patch.set_facecolor('white')
+        on_diag = [0, 4, 8]
+        for i in range(9):
+                plt.subplot(3, 3, i+1)
+                ax = fig.gca()
+                ax.set_aspect('equal')
+                plt.plot([-1., 1.], [-1., 1.], 'r--')
+                plt.scatter(true_stresses[:, i], predicted_stresses[:, i])
+                plt.xlabel('True value')
+                plt.ylabel('Predicted value')
+                idx_1 = i / 3
+                idx_2 = i % 3
+                plt.title('A' + str(idx_1) + str(idx_2))
+                if i in on_diag:
+                    plt.xlim([-1./3., 2./3.])
+                    plt.ylim([-1./3., 2./3.])
+                else:
+                    plt.xlim([-0.5, 0.5])
+                    plt.ylim([-0.5, 0.5])
+        plt.tight_layout()
+        plt.show()
