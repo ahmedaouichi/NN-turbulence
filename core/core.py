@@ -57,30 +57,30 @@ class Core:
                     counter += 1
 
         fd.close()
-        
+
         return U
-        
+
     def importStressTensor(self, usecase, DIM_Y, DIM_Z):
         ## Open appropriate file and read it out
 
         components = ['uu', 'uv', 'uw', 'vv', 'vw', 'ww']
-        data = defaultdict(list) 
+        data = defaultdict(list)
         for ii in range(len(components)):
             comp = components[ii]
-            filepath = '../inversion/DATA/RECTANGULARDUCT/DATA/'+comp+ '_' + usecase + '.prof.txt'    
+            filepath = '../inversion/DATA/RECTANGULARDUCT/DATA/'+comp+ '_' + usecase + '.prof.txt'
             data[comp]  = []
             with open(filepath, 'r', encoding='latin-1') as fd:
                 for line in fd:
                     if line[0] != '%':
                         data[comp].append(line.split())
                         break
-                    
+
                 for line in fd:
                     if len(line.split()) != 0: ## Omit blank lines
                         data[comp].append(line.split())
-                
+
             fd.close()
-            
+
         tensor = np.ones([DIM_Y, DIM_Z, 3,3])
         counter = 1
         for ii in range(DIM_Y):
@@ -88,17 +88,17 @@ class Core:
                 tensor[ii,:,0,0] = data['uu'][ii]
                 tensor[ii,:,1,0] = data['uv'][ii]
                 tensor[ii,:,2,0] = data['uw'][ii]
-                
+
                 tensor[ii,:,0,1] = data['uv'][ii]
                 tensor[ii,:,1,1] = data['vv'][ii]
                 tensor[ii,:,2,1] = data['vw'][ii]
-                
+
                 tensor[ii,:,0,2] = data['uw'][ii]
                 tensor[ii,:,1,2] = data['vw'][ii]
                 tensor[ii,:,2,2] = data['ww'][ii]
-                
+
                 counter += 1
-        
+
         return tensor
 
     def plotMeanVelocityComponent(self, RA, Retau, velocity_component):
@@ -140,21 +140,71 @@ class Core:
 
     def plotMeanVelocityField(self, RA, Retau, data, ycoord, zcoord):
         x, y, z = np.meshgrid(ycoord[1:-1:10], zcoord[1:-1:10], np.zeros(1))
-        
+
         fig_field = plt.figure(2)
         ax = fig_field.gca(projection='3d')
         ax.quiver(x, y, z, data[1:-1:10,1:-1:10,0], data[1:-1:10,1:-1:10,1], data[1:-1:10,1:-1:10,2], length=0.05, normalize=True)
         ax.set_title('Mean Velocity field for $R_{\\tau}$ = '+str(Retau) +' and RA = '+str(RA))
         plt.show()
 
+
+    def calc_S_R_test(self, grad_u, k, eps):
+        n = grad_u.shape[0]
+        S = np.zeros((n, 3, 3))
+        R = np.zeros((n, 3, 3))
+        ke = k / eps
+        for i in range(n):
+            S[i, :, :] = ke[i] * 0.5 * (grad_u[i, :, :] + np.transpose(grad_u[i, :, :]))
+            R[i, :, :] = ke[i] * 0.5 * (grad_u[i, :, :] - np.transpose(grad_u[i, :, :]))
+
+        return S,R
+
+    def calc_T_test(self, S, R):
+
+        num_points = S.shape[0]
+        num_tensor_basis = 10
+        T = np.zeros((num_points, num_tensor_basis, 3, 3))
+        for i in range(num_points):
+            sij = S[i, :, :]
+            rij = R[i, :, :]
+            T[i, 0, :, :] = sij
+            T[i, 1, :, :] = np.dot(sij, rij) - np.dot(rij, sij)
+            T[i, 2, :, :] = np.dot(sij, sij) - 1./3.*np.eye(3)*np.trace(np.dot(sij, sij))
+            T[i, 3, :, :] = np.dot(rij, rij) - 1./3.*np.eye(3)*np.trace(np.dot(rij, rij))
+            T[i, 4, :, :] = np.dot(rij, np.dot(sij, sij)) - np.dot(np.dot(sij, sij), rij)
+            T[i, 5, :, :] = np.dot(rij, np.dot(rij, sij)) + np.dot(sij, np.dot(rij, rij)) - 2./3.*np.eye(3)*np.trace(np.dot(sij, np.dot(rij, rij)))
+            T[i, 6, :, :] = np.dot(np.dot(rij, sij), np.dot(rij, rij)) - np.dot(np.dot(rij, rij), np.dot(sij, rij))
+            T[i, 7, :, :] = np.dot(np.dot(sij, rij), np.dot(sij, sij)) - np.dot(np.dot(sij, sij), np.dot(rij, sij))
+            T[i, 8, :, :] = np.dot(np.dot(rij, rij), np.dot(sij, sij)) + np.dot(np.dot(sij, sij), np.dot(rij, rij))- 2./3.*np.eye(3)*np.trace(np.dot(np.dot(sij, sij), np.dot(rij, rij)))
+            T[i, 9, :, :] = np.dot(np.dot(rij, np.dot(sij, sij)), np.dot(rij, rij)) - np.dot(np.dot(rij, np.dot(rij, sij)), np.dot(sij, rij))
+            T_flat = np.zeros((num_points, num_tensor_basis, 9))
+        for i in range(3):
+            for j in range(3):
+                T_flat[:, :, 3*i+j] = T[:, :, i, j]
+        return T_flat
+
+    def calc_scalar_basis_test(self, S, R):
+        num_points = S.shape[0]
+        num_eigenvalues = 5
+        eigenvalues = np.zeros((num_points, num_eigenvalues))
+        for i in range(num_points):
+            eigenvalues[i, 0] = np.trace(np.dot(S[i, :, :], S[i, :, :]))
+            eigenvalues[i, 1] = np.trace(np.dot(R[i, :, :], R[i, :, :]))
+            eigenvalues[i, 2] = np.trace(np.dot(S[i, :, :], np.dot(S[i, :, :], S[i, :, :])))
+            eigenvalues[i, 3] = np.trace(np.dot(R[i, :, :], np.dot(R[i, :, :], S[i, :, :])))
+            eigenvalues[i, 4] = np.trace(np.dot(np.dot(R[i, :, :], R[i, :, :]), np.dot(S[i, :, :], S[i, :, :])))
+
+        return eigenvalues
+
+
     def calc_S_R(self, grad_u, k, eps):
         DIM_Y = grad_u.shape[0]
         DIM_Z = grad_u.shape[1]
-        
+
         S = np.zeros((DIM_Y, DIM_Z, 3, 3))
         R = np.zeros((DIM_Y, DIM_Z, 3, 3))
         ke = k / eps
-        
+
         for ii in range(DIM_Y):
             for jj in range(DIM_Z):
                 S[ii, jj, :, :] = ke[ii, jj] * 0.5 * (grad_u[ii, jj, :, :] + np.transpose(grad_u[ii, jj,  :, :]))
@@ -165,7 +215,7 @@ class Core:
     def calc_tensor_basis(self, S, R):
         DIM_Y = S.shape[0]
         DIM_Z = S.shape[1]
-        
+
         T = np.zeros((DIM_Y, DIM_Z, 10, 3, 3))
         for ii in range(DIM_Y):
             for jj in range(DIM_Z):
@@ -187,11 +237,11 @@ class Core:
             for j in range(3):
                 T_flat[:, :, 3*i+j] = T[:, :, i, j]
         return T_flat
-    
+
     def calc_scalar_basis(self, S, R):
         DIM_Y = R.shape[0]
         DIM_Z = R.shape[1]
-    
+
         eigenvalues = np.zeros([DIM_Y, DIM_Z, 5])
         for ii in range(DIM_Y):
             for jj in range(DIM_Z):
@@ -223,20 +273,20 @@ class Core:
     def calc_k(self, velocity_gradient):
         DIM_Y = np.shape(velocity_gradient)[0]
         DIM_Z = np.shape(velocity_gradient)[1]
-        
+
         k = np.zeros([DIM_Y, DIM_Z])
-        
+
         ## Implementation of formula: k = 0.5*Tr(tau)
         ## Tr(tau) = (sum of diagonal elements of tau)
-        
+
         for ii in range(DIM_Y):
             for jj in range(DIM_Z):
                 for cc in range(3):
                     k[ii,jj] += velocity_gradient[ii,jj,cc,cc]
-        
+
         k = 0.5*k
         return k
-    
+
     def partialderivativeCD(u0, u1, u2, q0, q2):
         return (u0-2*u1+u2)/(q2-q0)
 
@@ -265,31 +315,31 @@ class Core:
             return uu[ii,jj-1], uu[ii,jj]
 
     def gradient(self,data,ycoord, zcoord):
-        
+
         DIM_Y = len(ycoord)
         DIM_Z = len(zcoord)
-        
-        
+
+
         zz, yy = np.meshgrid(zcoord, ycoord)
 
         uu = data[:,:,0]
         vv = data[:,:,1]
         ww = data[:,:,2]
-        
+
         ## Create matrix containing u,v and w for every (x,y) data point
         ## Matrix[X, Y, 3 (u,v,w)]
         u = np.array([uu,vv,ww])
 
         ## Calculate gradient using numpy-function. Returns three lists,
         ## each containing an array corresponding to the derivative to one dimension.
-    
+
         gradient = np.zeros([DIM_Y,DIM_Z,3,3])
 
         ## As the flow is symmetric in the x-direction, the gradient in x-direction is always zero.
         ux_x = 0
         uy_x = 0
         uz_x = 0
-        
+
         for ii in range(DIM_Y):
             for jj in range(DIM_Z):
                 y1 = yy[ii,jj]
@@ -505,19 +555,19 @@ class Core:
                     ux_z = Core.partialderivativeBD(u_z0, u_z1, z0, z1)
                     uy_z = Core.partialderivativeBD(v_z0, v_z1, z0, z1)
                     uz_z = Core.partialderivativeBD(w_z0, w_z1, z0, z1)
-                    
-                    gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]]) 
-        
+
+                    gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
+
         return gradient
-    
-    
+
+
     def load_test_data():
         data = np.loadtxt("nn/test_data.txt", skiprows=4)
         k = data[:, 0]
         eps = data[:, 1]
         grad_u_flat = data[:, 2:11]
         stresses_flat = data[:, 11:]
-    
+
         num_points = data.shape[0]
         grad_u = np.zeros((num_points, 3, 3))
         stresses = np.zeros((num_points, 3, 3))
@@ -525,11 +575,11 @@ class Core:
             for j in range(3):
                 grad_u[:, i, j] = grad_u_flat[:, i*3+j]
                 stresses[:, i, j] = stresses_flat[:, i*3+j]
-    
+
         return k, eps, grad_u, stresses
-    
+
     def plot_results(predicted_stresses, true_stresses):
-    
+
         fig = plt.figure()
         fig.patch.set_facecolor('white')
         on_diag = [0, 4, 8]
