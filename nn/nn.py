@@ -3,6 +3,8 @@ from keras.models import Sequential
 from keras.layers import Dense
 import numpy as np
 import theano.tensor as T
+import matplotlib.pyplot as plt
+
 
 class NN:
 
@@ -27,9 +29,30 @@ class NN:
 
         model = keras.models.Model(inputs=[tensor_in, g_input], outputs=b_output)
         model.compile(loss = 'mean_squared_error', optimizer = 'sgd', metrics = ['accuracy'])
-        model.fit([tb, invariants], b, batch_size = 2000, nb_epoch = 100, verbose = 1)
+        model.fit([tb, invariants], b, batch_size = 200000, epochs = 100, verbose = 0)
         self.model = model
-        return model.predict([tb, invariants])
-
-    # def loss_function(self, y_true, y_pred):
-    #     return np.sqrt(np.mean(np.square(y_true-y_pred)))
+    
+    def plot_results(self,predicted_stresses, true_stresses):
+    
+        components = ['uu', 'vu', 'wu', 'uv', 'vv', 'wv', 'uw', 'vw', 'ww']
+        
+        fig = plt.figure()
+        fig.patch.set_facecolor('white')
+        on_diag = [0, 4, 8]
+        for i in range(9):
+                plt.subplot(3, 3, i+1)
+                ax = fig.gca()
+                ax.set_aspect('equal')
+                plt.plot([-1., 1.], [-1., 1.], 'r--')
+                plt.scatter(true_stresses[:, i], predicted_stresses[:, i])
+                plt.xlabel('True value')
+                plt.ylabel('Predicted value')
+                plt.title(components[i])
+                if i in on_diag:
+                    plt.xlim([-1e-2, 1e-2])
+                    plt.ylim([-1e-2, 1e-2])
+                else:
+                    plt.xlim([-1e-2, 1e-2])
+                    plt.ylim([-1e-2, 1e-2])
+        plt.tight_layout()
+        plt.show()

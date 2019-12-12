@@ -1,9 +1,7 @@
 import numpy as np
-import csv
 import matplotlib.pyplot as plt
-import matplotlib as mpl
-import math as m
 from mpl_toolkits.mplot3d import Axes3D
+import math as m
 from collections import defaultdict
 
 class Core:
@@ -135,8 +133,7 @@ class Core:
             if (ii == len(RA)-1):
                 ax.set_xlabel('y: wall normal (a. u. )')
 
-        plt.show()
-
+        plt.plot()
 
     def plotMeanVelocityField(self, RA, Retau, data, ycoord, zcoord):
         x, y, z = np.meshgrid(ycoord[1:-1:10], zcoord[1:-1:10], np.zeros(1))
@@ -232,11 +229,12 @@ class Core:
                 T[ii, jj, 8, :, :] = np.dot(np.dot(rij, rij), np.dot(sij, sij)) + np.dot(np.dot(sij, sij), np.dot(rij, rij))- 2./3.*np.eye(3)*np.trace(np.dot(np.dot(sij, sij), np.dot(rij, rij)))
                 T[ii, jj, 9, :, :] = np.dot(np.dot(rij, np.dot(sij, sij)), np.dot(rij, rij)) - np.dot(np.dot(rij, np.dot(rij, sij)), np.dot(sij, rij))
 
-        T_flat = np.zeros((num_points, num_tensor_basis, 9))
-        for i in range(3):
-            for j in range(3):
-                T_flat[:, :, 3*i+j] = T[:, :, i, j]
-        return T_flat
+#        T_flat = np.zeros((num_points, num_tensor_basis, 9))
+#        for i in range(3):
+#            for j in range(3):
+#                T_flat[:, :, 3*i+j] = T[:, :, i, j]
+#        return T_flat
+        return T
 
     def calc_scalar_basis(self, S, R):
         DIM_Y = R.shape[0]
@@ -560,45 +558,4 @@ class Core:
 
         return gradient
 
-
-    def load_test_data():
-        data = np.loadtxt("nn/test_data.txt", skiprows=4)
-        k = data[:, 0]
-        eps = data[:, 1]
-        grad_u_flat = data[:, 2:11]
-        stresses_flat = data[:, 11:]
-
-        num_points = data.shape[0]
-        grad_u = np.zeros((num_points, 3, 3))
-        stresses = np.zeros((num_points, 3, 3))
-        for i in range(3):
-            for j in range(3):
-                grad_u[:, i, j] = grad_u_flat[:, i*3+j]
-                stresses[:, i, j] = stresses_flat[:, i*3+j]
-
-        return k, eps, grad_u, stresses
-
-    def plot_results(predicted_stresses, true_stresses):
-
-        fig = plt.figure()
-        fig.patch.set_facecolor('white')
-        on_diag = [0, 4, 8]
-        for i in range(9):
-                plt.subplot(3, 3, i+1)
-                ax = fig.gca()
-                ax.set_aspect('equal')
-                plt.plot([-1., 1.], [-1., 1.], 'r--')
-                plt.scatter(true_stresses[:, i], predicted_stresses[:, i])
-                plt.xlabel('True value')
-                plt.ylabel('Predicted value')
-                idx_1 = i / 3
-                idx_2 = i % 3
-                plt.title('A' + str(idx_1) + str(idx_2))
-                if i in on_diag:
-                    plt.xlim([-1./3., 2./3.])
-                    plt.ylim([-1./3., 2./3.])
-                else:
-                    plt.xlim([-0.5, 0.5])
-                    plt.ylim([-0.5, 0.5])
-        plt.tight_layout()
-        plt.show()
+    
