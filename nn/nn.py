@@ -48,11 +48,11 @@ class NN:
                 plt.xlabel('True value')
                 plt.ylabel('Predicted value')
                 plt.title(components[i])
-                if i in on_diag:
-                    plt.xlim([-1e-2, 1e-2])
-                    plt.ylim([-1e-2, 1e-2])
-                else:
-                    plt.xlim([-1e-2, 1e-2])
-                    plt.ylim([-1e-2, 1e-2])
+#                if i in on_diag:
+#                    plt.xlim([-1e-2, 1e-2])
+#                    plt.ylim([-1e-2, 1e-2])
+#                else:
+#                    plt.xlim([-1e-2, 1e-2])
+#                    plt.ylim([-1e-2, 1e-2])
         plt.tight_layout()
         plt.show()
