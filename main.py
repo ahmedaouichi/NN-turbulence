@@ -1,12 +1,23 @@
-import matplotlib.pyplot as plt
 import numpy as np
 from nn import NN
 from core import Core
+import keras
+import matplotlib.pyplot as plt
 
 ########################## Rectangular Duct data ##############################
 
+def a(x,y):
+    return x**2*y**2
+    
+def b(x,y):
+    return x*y
+
+def c(x,y):
+    return y**3*x**3
+
 def main():
 
+    
     core = Core()
 
     ## Specify usecase: (RA)_(Retau), RA = ratio aspect, Retau is usecase = '3_180'
@@ -58,19 +69,38 @@ def main():
     tensorbasis_shape = 10
     stresstensor_shape = 9
     
+    ## Input scaling
+#    scalingfactor = np.max(stresstensor)
+#    shiftfactor = np.mean(stresstensor)
+#    stresstensor = (stresstensor-shiftfactor)/scalingfactor
+#    
+    scale_factor = [10, 100, 100, 100, 1000, 1000, 10000, 10000, 10000, 10000]
+    for i in range(10):
+        tensorbasis[:, i, :, :] /= scale_factor[i]
+    
     ## Reshape 2D array to 1D arrays. Network only takes 1D arrays
     stresstensor = np.reshape(stresstensor, (-1, 9))
     tensorbasis = np.reshape(tensorbasis, (-1, 10, 9))
     eigenvalues = np.reshape(eigenvalues, (-1, 5))
     
+
     ############  Building neural network  ####################################
     
     print('--> Build network')
-    nn_3d = NN(8, 30, eigenvalues_shape, tensorbasis_shape, stresstensor_shape)
+    neural_network = NN(8, 30, eigenvalues_shape, tensorbasis_shape, stresstensor_shape)
+    
     print('--> Train network')
-    nn_3d.build(eigenvalues, tensorbasis, stresstensor)
+    neural_network.build(eigenvalues, tensorbasis, stresstensor)    
+    
     print('--> Evalutate model')
-    result =  nn_3d.model.predict([tensorbasis, eigenvalues])
-    nn_3d.plot_results(result, stresstensor)
+    prediction =  neural_network.model.predict([tensorbasis, eigenvalues])
+    
+    neural_network.plot_results(prediction, stresstensor)
+    
+    
+    ###############  Visualize prediction  ####################################
+    core.tensorplot(stresstensor, DIM_Y, DIM_Z)
+    core.tensorplot(prediction, DIM_Y, DIM_Z)
+    
      
 main()

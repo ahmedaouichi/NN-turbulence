@@ -179,6 +179,22 @@ class Core:
             for j in range(3):
                 T_flat[:, :, 3*i+j] = T[:, :, i, j]
         return T_flat
+    
+    def tensorplot(self, tensor, DIM_Y, DIM_Z):
+        tensor = np.reshape(tensor, (DIM_Y, DIM_Z, 9))
+        
+        fig, axes = plt.subplots(nrows=3, ncols=3)
+        ii = 0
+        for ax in axes.flat:
+            y = m.floor((ii-1)/3)
+            z = int((ii-1)%3)
+            im = ax.contourf(tensor[:,:,y*z])
+            ii += 1
+        
+        fig.subplots_adjust(right=0.8)
+        cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+        fig.colorbar(im, cax=cbar_ax)
+        plt.show()
 
     def calc_scalar_basis_test(self, S, R):
         num_points = S.shape[0]
@@ -212,6 +228,8 @@ class Core:
     def calc_tensor_basis(self, S, R):
         DIM_Y = S.shape[0]
         DIM_Z = S.shape[1]
+        num_points = DIM_Y*DIM_Z
+        num_tensor_basis = 10
 
         T = np.zeros((DIM_Y, DIM_Z, 10, 3, 3))
         for ii in range(DIM_Y):
@@ -229,11 +247,6 @@ class Core:
                 T[ii, jj, 8, :, :] = np.dot(np.dot(rij, rij), np.dot(sij, sij)) + np.dot(np.dot(sij, sij), np.dot(rij, rij))- 2./3.*np.eye(3)*np.trace(np.dot(np.dot(sij, sij), np.dot(rij, rij)))
                 T[ii, jj, 9, :, :] = np.dot(np.dot(rij, np.dot(sij, sij)), np.dot(rij, rij)) - np.dot(np.dot(rij, np.dot(rij, sij)), np.dot(sij, rij))
 
-#        T_flat = np.zeros((num_points, num_tensor_basis, 9))
-#        for i in range(3):
-#            for j in range(3):
-#                T_flat[:, :, 3*i+j] = T[:, :, i, j]
-#        return T_flat
         return T
 
     def calc_scalar_basis(self, S, R):
@@ -557,5 +570,4 @@ class Core:
                     gradient[ii,jj,:,:] = np.array([[ux_x, ux_y, ux_z], [uy_x, uy_y, uy_z], [uz_x, uz_y, uz_z]])
 
         return gradient
-
-    
+        
