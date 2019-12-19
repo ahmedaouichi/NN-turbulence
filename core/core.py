@@ -142,7 +142,6 @@ class Core:
         ax = fig_field.gca(projection='3d')
         ax.quiver(x, y, z, data[1:-1:10,1:-1:10,0], data[1:-1:10,1:-1:10,1], data[1:-1:10,1:-1:10,2], length=0.05, normalize=True)
         ax.set_title('Mean Velocity field for $R_{\\tau}$ = '+str(Retau) +' and RA = '+str(RA))
-        plt.show()
 
 
     def calc_S_R_test(self, grad_u, k, eps):
@@ -194,7 +193,6 @@ class Core:
         fig.subplots_adjust(right=0.8)
         cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
         fig.colorbar(im, cax=cbar_ax)
-        plt.show()
 
     def calc_scalar_basis_test(self, S, R):
         num_points = S.shape[0]

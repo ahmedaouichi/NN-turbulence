@@ -3,6 +3,7 @@ from nn import NN
 from core import Core
 import keras
 import matplotlib.pyplot as plt
+from keras.callbacks import EarlyStopping
 
 ########################## Rectangular Duct data ##############################
 
@@ -70,13 +71,9 @@ def main():
     stresstensor_shape = 9
     
     ## Input scaling
-#    scalingfactor = np.max(stresstensor)
-#    shiftfactor = np.mean(stresstensor)
-#    stresstensor = (stresstensor-shiftfactor)/scalingfactor
-#    
-    scale_factor = [10, 100, 100, 100, 1000, 1000, 10000, 10000, 10000, 10000]
-    for i in range(10):
-        tensorbasis[:, i, :, :] /= scale_factor[i]
+    scalingfactor = np.max(stresstensor)
+    shiftfactor = np.mean(stresstensor)
+    stresstensor = stresstensor/scalingfactor
     
     ## Reshape 2D array to 1D arrays. Network only takes 1D arrays
     stresstensor = np.reshape(stresstensor, (-1, 9))
@@ -88,19 +85,32 @@ def main():
     
     print('--> Build network')
     neural_network = NN(8, 30, eigenvalues_shape, tensorbasis_shape, stresstensor_shape)
+    neural_network.build(eigenvalues, tensorbasis, stresstensor)
     
     print('--> Train network')
-    neural_network.build(eigenvalues, tensorbasis, stresstensor)    
+    early_stopping = EarlyStopping(monitor='val_loss', patience=2)
+    neural_network.model.fit([tensorbasis, eigenvalues], stresstensor, batch_size = 128, epochs = 20, verbose = 1, shuffle=True, validation_split=0.8, callbacks=[early_stopping])
     
     print('--> Evalutate model')
-    prediction =  neural_network.model.predict([tensorbasis, eigenvalues])
+    results = neural_network.model.evaluate([tensorbasis, eigenvalues], stresstensor, batch_size=128)
+    print('test loss, test acc:', results)
     
-    neural_network.plot_results(prediction, stresstensor)
     
-    
-    ###############  Visualize prediction  ####################################
-    core.tensorplot(stresstensor, DIM_Y, DIM_Z)
-    core.tensorplot(prediction, DIM_Y, DIM_Z)
-    
+#    prediction =  neural_network.model.predict()
+#    prediction = prediction*scalingfactor
+#    
+#    
+#    neural_network.plot_results(prediction, stresstensor)
+#    
+#    
+#    ###############  Visualize prediction  ####################################
+#    core.tensorplot(stresstensor, DIM_Y, DIM_Z)
+#    core.tensorplot(prediction, DIM_Y, DIM_Z)
+#    
+#    from keras.utils.vis_utils import plot_model
+#    
+#    plot_model(neural_network.model, to_file='model_plot.png', show_shapes=True, show_layer_names=True)
+#    
+#    plt.show()    
      
 main()

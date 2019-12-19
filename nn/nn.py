@@ -33,7 +33,7 @@ class NN:
         keras.optimizers.SGD(lr=2.5e-2, momentum=0.0001, decay=0, nesterov=False, clipvalue=0.5)
         model = keras.models.Model(inputs=[tensor_in, g_input], outputs=multiply_layer)
         model.compile(loss = 'mean_squared_error', optimizer = 'adam', metrics = ['accuracy'])
-        model.fit([tensorbasis, eigenvalues], stresstensor, batch_size = 20, epochs = 20, verbose = 1, shuffle=True, validation_split=0.8)
+        
         self.model = model
     
     def plot_results(self,predicted_stresses, true_stresses):
@@ -59,4 +59,3 @@ class NN:
                     plt.xlim([-5e-3, 5e-3])
                     plt.ylim([-5e-3, 5e-3])
         plt.tight_layout()
-        plt.show()
