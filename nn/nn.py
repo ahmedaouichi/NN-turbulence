@@ -27,12 +27,14 @@ class NN:
         g_output = keras.layers.LeakyReLU(alpha)(g_output)
 
         tensor_in = keras.layers.Input(shape=(self.num_outputs, 9))
-         # T.batched_tensordot(inputs[0], inputs[1], axes=[[1], [1]])
-        multiply_layer = keras.layers.Dot([1,1],normalize=False)([tensor_in, g_output])
+        merge_layer = keras.layers.Dot([1,1],normalize=True)([tensor_in, g_output])
+        normalize_layer = keras.layers.BatchNormalization(axis=-1, momentum=0.99, epsilon=0.001, center=True, scale=True, beta_initializer='zeros', gamma_initializer='ones', moving_mean_initializer='zeros', moving_variance_initializer='ones', beta_regularizer=None, gamma_regularizer=None, beta_constraint=None, gamma_constraint=None)(merge_layer)
+        model = keras.models.Model(inputs=[tensor_in, g_input], outputs=normalize_layer)
         
-        keras.optimizers.SGD(lr=2.5e-2, momentum=0.01, decay=0, nesterov=False, clipvalue=0.5)
-        model = keras.models.Model(inputs=[tensor_in, g_input], outputs=multiply_layer)
-        model.compile(loss = 'mean_squared_error', optimizer = 'adam', metrics = ['accuracy'])
+        custom_optimizer = keras.optimizers.RMSprop(learning_rate=0.009)
+        #model = keras.models.Model(inputs=[tensor_in, g_input], outputs=multiply_layer)
+        
+        model.compile(loss = 'mean_squared_error', optimizer = custom_optimizer, metrics = ['accuracy'])
         
         self.model = model
     
