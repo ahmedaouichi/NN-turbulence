@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy as np
 from nn import NN
 from core import Core
@@ -53,6 +52,11 @@ def main():
     RA_list = [1,3,5,7,10,14]
     velocity_comps = ['U', 'V', 'W']
     DIM = len(velocity_comps)
+
+
+    print('--> Build network')
+    neural_network = NN(2, 20, eigenvalues_shape, tensorbasis_shape, stresstensor_shape)
+    neural_network.build()
 
     RA = RA_list[0]
     usecase =  str(RA)+'_'+str(Retau)

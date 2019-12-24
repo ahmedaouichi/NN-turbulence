@@ -194,6 +194,21 @@ class Core:
         cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
         fig.colorbar(im, cax=cbar_ax)
 
+    def tensorplot(self, tensor, DIM_Y, DIM_Z):
+        tensor = np.reshape(tensor, (DIM_Y, DIM_Z, 9))
+
+        fig, axes = plt.subplots(nrows=3, ncols=3)
+        ii = 0
+        for ax in axes.flat:
+            y = m.floor((ii-1)/3)
+            z = int((ii-1)%3)
+            im = ax.contourf(tensor[:,:,y*z])
+            ii += 1
+
+        fig.subplots_adjust(right=0.8)
+        cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+        fig.colorbar(im, cax=cbar_ax)
+
     def calc_scalar_basis_test(self, S, R):
         num_points = S.shape[0]
         num_eigenvalues = 5
