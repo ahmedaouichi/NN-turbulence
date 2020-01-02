@@ -8,6 +8,7 @@ from sklearn.utils import shuffle
 from sklearn.preprocessing import StandardScaler
 import keras.backend as K
 import math as m
+import matplotlib.pyplot as plt
 
 def a(x,y):
     return x**2*y**2
@@ -38,7 +39,6 @@ def plot_results(predicted_stresses, true_stresses):
             else:
                 plt.xlim([-0.5, 0.5])
                 plt.ylim([-0.5, 0.5])
-    plt.show()
 
 def main():
     core = Core()
@@ -58,7 +58,7 @@ def main():
     neural_network = NN(2, 20, eigenvalues_shape, tensorbasis_shape, stresstensor_shape)
     neural_network.build()
 
-    RA = RA_list[0]
+    RA = RA_list[1]
     usecase =  str(RA)+'_'+str(Retau)
 
     print('--> Import coordinate system')
@@ -98,20 +98,55 @@ def main():
     tensorbasis = np.reshape(tensorbasis, (-1, 10, 9))
     eigenvalues = np.reshape(eigenvalues, (-1, 5))
     b = np.reshape(b, (-1, 9))
-
+    
+    nodes = 30
+    layers = 8
+    
     print('--> Build network')
-    neural_network = NN(8, 30, eigenvalues.shape[1], tensorbasis.shape[1], b.shape[1])
+    neural_network = NN(layers, nodes, eigenvalues.shape[1], tensorbasis.shape[1], b.shape[1])
     neural_network.build()
 
 
     print('--> Train network')
     prediction = neural_network.train(eigenvalues, tensorbasis, b)
-
+    
     plot_results(prediction, b)
 
     core.tensorplot(stresstensor, DIM_Y, DIM_Z)
     predicted_stress = core.calc_tensor(prediction, k)
     core.tensorplot(predicted_stress, DIM_Y, DIM_Z)
+
+    min_layers = 1
+    max_layers = 2
+    min_nodes = 5
+    max_nodes = 10
+
+    layer_space = np.arange(min_layers, max_layers, 2)
+    node_space = np.arange(min_nodes, max_nodes, 5)
+    layers = np.shape(layer_space)[0]
+    nodes = np.shape(node_space)[0]
+    accuracy = np.ones([layers, nodes])
+
+    node_counter = 0
+    layer_counter = 0
+    for layer in layer_space:
+            for node in node_space:
+                print('Layers: '+str(layer)+', nodes: '+str(node))
+                del neural_network
+                neural_network = NN(layers, nodes, eigenvalues.shape[1], tensorbasis.shape[1], b.shape[1])
+                neural_network.build()
+                prediction = neural_network.train(eigenvalues, tensorbasis, b)
+                accuracy[layer_counter, node_counter] = neural_network.model.evaluate([tensorbasis, eigenvalues], b, batch_size=128)[1]
+                
+                node_counter+=1
+            layer_counter += 1
+
+    fig = plt.figure(4,figsize=(10,30))
+    plt.imshow(accuracy, extent=[min_layers, max_layers, min_nodes, max_nodes])
+    optimal_layer_node = np.where(accuracy == np.amin(accuracy))
+    listOfCordinates = list(zip(optimal_layer_node[0], optimal_layer_node[1]))
+    for cord in listOfCordinates:
+        print('Optimal settings are '+str(cord))
 
     ###############  Visualize prediction  ####################################
 

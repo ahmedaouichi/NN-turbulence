@@ -241,8 +241,6 @@ class Core:
     def calc_tensor_basis(self, S, R):
         DIM_Y = S.shape[0]
         DIM_Z = S.shape[1]
-        num_points = DIM_Y*DIM_Z
-        num_tensor_basis = 10
 
         T = np.zeros((DIM_Y, DIM_Z, 10, 3, 3))
         for ii in range(DIM_Y):
@@ -308,23 +306,6 @@ class Core:
 
         return tau
 
-
-    # def calc_k(self, velocity_gradient):
-    #     DIM_Y = np.shape(velocity_gradient)[0]
-    #     DIM_Z = np.shape(velocity_gradient)[1]
-    #
-    #     k = np.zeros([DIM_Y, DIM_Z])
-    #
-    #     ## Implementation of formula: k = 0.5*Tr(tau)
-    #     ## Tr(tau) = (sum of diagonal elements of tau)
-    #
-    #     for ii in range(DIM_Y):
-    #         for jj in range(DIM_Z):
-    #             for cc in range(3):
-    #                 k[ii,jj] += velocity_gradient[ii,jj,cc,cc]
-    #
-    #     k = 0.5*k
-    #     return k
     def calc_k(self, tau):
         k = 0.5 * (tau[:, 0, 0] + tau[:, 1, 1] + tau[:, 2, 2])
         k = np.maximum(k, 1e-8)
@@ -1206,4 +1187,3 @@ class Core:
 #                     plt.xlim([-0.5, 0.5])
 #                     plt.ylim([-0.5, 0.5])
 #         plt.tight_layout()
-#         plt.show()

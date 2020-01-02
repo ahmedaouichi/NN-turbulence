@@ -41,10 +41,9 @@ class NN:
         plot_model(self.model,show_shapes=True, expand_nested=True, to_file='model.png')
         result = self.model.predict([tb, invariants])
         SVG(model_to_dot(self.model, show_shapes=True, show_layer_names=False, rankdir='TB').create(prog='dot', format='svg'))
-        print(self.model.summary())
+#        print(self.model.summary())
         return result
+    
 
 
-
-    # def loss_function(self, y_true, y_pred):
-    #     return np.sqrt(np.mean(np.square(y_true-y_pred)))
+    
