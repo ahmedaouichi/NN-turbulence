@@ -9,6 +9,7 @@ from keras.utils.vis_utils import model_to_dot
 import matplotlib.pyplot as plt
 import numpy as np
 import theano.tensor as T
+import keras.backend as K
 
 class NN:
 
@@ -20,7 +21,6 @@ class NN:
         self.output_shape = output_shape # Shape of b
 
     def build(self):
-        #model:
         g_input = keras.layers.Input(shape=(self.num_inputs,))
         hidden = keras.layers.Dense(self.num_nodes, activation='sigmoid')(g_input)
         for i in range(self.num_layers-1):

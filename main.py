@@ -9,6 +9,7 @@ from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 import keras.backend as K
 import math as m
+import matplotlib.pyplot as plt
 
 def a(x,y):
     return x**2*y**2
