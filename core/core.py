@@ -240,13 +240,21 @@ class Core:
                 T[ii, jj, 8, :, :] = np.dot(np.dot(rij, rij), np.dot(sij, sij)) + np.dot(np.dot(sij, sij), np.dot(rij, rij))- 2./3.*np.eye(3)*np.trace(np.dot(np.dot(sij, sij), np.dot(rij, rij)))
                 T[ii, jj, 9, :, :] = np.dot(np.dot(rij, np.dot(sij, sij)), np.dot(rij, rij)) - np.dot(np.dot(rij, np.dot(rij, sij)), np.dot(sij, rij))
 
+#                for kk in range(0,10):
+#                    T[ii, jj, kk, :, :] -= 1./3.*np.eye(3)*np.trace(T[ii, jj, kk, :, :])
+
+        
+#        scale_factor = [10, 100, 100, 100, 1000, 1000, 10000, 10000, 10000, 10000]
+#        for ii in range(0, 10):
+#            T[:, :, ii, :, :] /= scale_factor[ii]
+        
         return T
 
     def calc_scalar_basis(self, S, R):
         DIM_Y = R.shape[0]
         DIM_Z = R.shape[1]
 
-        eigenvalues = np.zeros([DIM_Y, DIM_Z, 5])
+        eigenvalues = np.zeros([DIM_Y, DIM_Z, 6])
         for ii in range(DIM_Y):
             for jj in range(DIM_Z):
                 eigenvalues[ii, jj, 0] = np.trace(np.dot(S[ii, jj, :, :], S[ii, jj, :, :]))
@@ -254,7 +262,15 @@ class Core:
                 eigenvalues[ii, jj, 2] = np.trace(np.dot(S[ii, jj, :, :], np.dot(S[ii, jj, :, :], S[ii, jj, :, :])))
                 eigenvalues[ii, jj, 3] = np.trace(np.dot(R[ii, jj, :, :], np.dot(R[ii, jj, :, :], S[ii, jj, :, :])))
                 eigenvalues[ii, jj, 4] = np.trace(np.dot(np.dot(R[ii, jj, :, :], R[ii, jj, :, :]), np.dot(S[ii, jj, :, :], S[ii, jj, :, :])))
-
+        
+                eigenvalues[ii, jj, 5] = np.mean(R[ii,jj])
+        
+        mean = np.zeros(6)
+        std = np.zeros(6)
+        mean = np.mean(eigenvalues, axis=(0,1))
+        std = np.std(eigenvalues, axis=(0,1))
+        eigenvalues = (eigenvalues-mean)/std
+        
         return eigenvalues
 
     def calc_output(self, tau, k):
@@ -294,7 +310,7 @@ class Core:
         return k
 
     def partialderivativeCD(u0, u1, u2, q0, q2):
-        return (u0-2*u1+u2)/(q2-q0)
+        return (u2-u0)/(q2-q0)
 
     def partialderivativeFD(u1, u2, q1, q2):
         return (u2-u1)/(q2-q1)

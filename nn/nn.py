@@ -1,15 +1,7 @@
 import keras
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.utils import plot_model
-from keras.layers.normalization import BatchNormalization
 from keras import optimizers
 from IPython.display import SVG
 from keras.utils.vis_utils import model_to_dot
-import matplotlib.pyplot as plt
-import numpy as np
-import theano.tensor as T
-import keras.backend as K
 
 class NN:
 
@@ -41,6 +33,3 @@ class NN:
         # SVG(model_to_dot(self.model).create(prog='dot', format='svg'))
         SVG(model_to_dot(self.model, show_shapes=True, show_layer_names=False, rankdir='TB').create(prog='dot', format='svg'))
 #        print(self.model.summary())
-
-
-    
