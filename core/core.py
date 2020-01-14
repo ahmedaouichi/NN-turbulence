@@ -280,15 +280,13 @@ class Core:
 
         for i in range(3):
             for j in range(3):
-                tmp = 2.0*k
-                b[:, i, j] = tau[:, i, j]/tmp
+                # tmp = 2.0*k
+                b[:, i, j] = tau[:, i, j]/(2.0*k)
             b[:, i, i] -= 1./3.
 
-        b_vector = np.zeros((num_points, 9))
-        for i in range(3):
-            for j in range(3):
-                b_vector[:, 3*i+j] = b[:, i, j]
-        return b_vector
+        b = np.reshape(b, (-1, 9))
+
+        return b
 
     def calc_tensor(self, b, k):
 
@@ -297,10 +295,14 @@ class Core:
         b = np.reshape(b, (-1, 3, 3))
 
         for i in range(3):
+            tau[:, i, i] = b[:, i, i]+1./3.
             for j in range(3):
-                tmp = 2.0*k
-                tau[:, i, j] = b[:, i, j]*tmp
-            tau[:, i, j] += 1./3.
+                if(j==i):
+                    tau[:, i, j] *= 2.0*k
+                else:
+                    tau[:, i, j] = b[:, i, j]*2.0*k
+
+        tau = np.reshape(tau, (-1, 9))
 
         return tau
 
