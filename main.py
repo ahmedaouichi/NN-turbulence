@@ -11,14 +11,6 @@ import keras.backend as K
 import math as m
 import matplotlib.pyplot as plt
 
-def a(x,y):
-    return x**2*y**2
-
-def b(x,y):
-    return x*y
-
-def c(x,y):
-    return y**3*x**3
 
 def make_realizable(labels):
 
@@ -99,62 +91,120 @@ def plot_results(predicted_stresses, true_stresses):
 
 
 def main():
-    core = Core()
-
-    ## Specify usecase: (RA)_(Retau), RA = ratio aspect, Retau is usecase = '3_180'
-    eigenvalues_shape = 5
-    tensorbasis_shape = 10
-    stresstensor_shape = 9
-
     Retau = 180
     RA_list = [1,3,5,7,10,14]
     velocity_comps = ['U', 'V', 'W']
     DIM = len(velocity_comps)
+    predict_index = 1
 
+    print('--> Build network')
+    nodes = 30
+    layers = 8
 
-    RA = RA_list[0]
+    eigenvalues_shape = 6
+    tensorbasis_shape = 10
+    stresstensor_shape = 9
+
+    core = Core()
+    neural_network = NN(layers, nodes, eigenvalues_shape, tensorbasis_shape, stresstensor_shape)
+    neural_network.build()
+
+    RA_list_loop = []
+    for i,x in enumerate(RA_list):
+        if i!= predict_index:
+            RA_list_loop.append(x)
+
+    # Loop over multiple cases to train the network
+    # Exclude one case, which can be used to predict
+    for RA in RA_list[0:1]:
+        usecase =  str(RA)+'_'+str(Retau)
+
+        print('--> Import coordinate system for training')
+        ycoord, DIM_Y = Core.importCoordinates('y', usecase)
+        zcoord, DIM_Z = Core.importCoordinates('z', usecase)
+
+        print('--> Import mean velocity field for training')
+        data = np.zeros([DIM_Y, DIM_Z, DIM])
+        for ii in range(DIM):
+            data[:,:,ii] = core.importMeanVelocity(DIM_Y, DIM_Z, usecase, velocity_comps[ii])
+
+        print('--> Compute mean velocity gradient for training')
+        velocity_gradient = core.gradient(data, ycoord, zcoord)
+
+        core.tensorplot(velocity_gradient, DIM_Y, DIM_Z, 'Velocity gradient')
+
+        print('--> Import Reynolds stress tensor for training')
+        stresstensor = core.importStressTensor(usecase, DIM_Y, DIM_Z)
+        stresstensor = np.reshape(stresstensor, (-1, 3, 3))
+
+        ############ Preparing network inputs #####################################
+
+        print('--> Compute omega field for training')
+        eps = 1*np.ones([DIM_Y, DIM_Z]) ## For now using epsilon=1 everywhere
+        print('--> Compute k field for training')
+        # k = core.calc_k(stresstensor) ## In realitiy this is not possible, because k is unknown
+        k = 1*np.ones([DIM_Y, DIM_Z]) ## For now using k=1 everywhere
+        k = np.reshape(k, (DIM_Y, DIM_Z))
+        print('--> Compute rotation rate and strain rate tensors for training')
+        S,R = core.calc_S_R(velocity_gradient, k, eps)
+        print('--> Compute eigenvalues for network input for training')
+        eigenvalues = core.calc_scalar_basis(S, R)  # Scalar basis lamba's
+        print('--> Compute tensor basis for training')
+        tensorbasis = core.calc_tensor_basis(S, R)
+
+        # Plot tensorbasis
+        #for x in range(0,10):
+        #    core.tensorplot(tensorbasis[:,:,x], DIM_Y, DIM_Z, str(x))
+
+        core.tensorplot(S[:,:,:,:], DIM_Y, DIM_Z, 'Strain rate tensor')
+        core.tensorplot(R[:,:,:,:], DIM_Y, DIM_Z, 'Rotation rate tensor')
+
+        ## Reshape 2D array to 1D arrays. Network only takes 1D arrays
+        k = np.reshape(k, -1)
+        #b = core.calc_output(stresstensor, k)
+        stresstensor = np.reshape(stresstensor, (-1, 9))
+        tensorbasis = np.reshape(tensorbasis, (-1, 10, 9))
+        eigenvalues = np.reshape(eigenvalues, (-1, 6))
+
+        print('--> Train network')
+        neural_network.train(eigenvalues, tensorbasis, stresstensor)
+
+    # Predict stresstensor using case not used in training
+    RA = RA_list[predict_index]
     usecase =  str(RA)+'_'+str(Retau)
 
-    print('--> Import coordinate system')
+    print('--> Import coordinate system for predicting')
     ycoord, DIM_Y = Core.importCoordinates('y', usecase)
     zcoord, DIM_Z = Core.importCoordinates('z', usecase)
 
-    print('--> Import mean velocity field')
+    print('--> Import mean velocity field for predicting')
     data = np.zeros([DIM_Y, DIM_Z, DIM])
     for ii in range(DIM):
         data[:,:,ii] = core.importMeanVelocity(DIM_Y, DIM_Z, usecase, velocity_comps[ii])
 
-    print('--> Compute mean velocity gradient')
+    print('--> Compute mean velocity gradient for predicting')
     velocity_gradient = core.gradient(data, ycoord, zcoord)
 
-    print('--> Import Reynolds stress tensor')
-    stresstensor = core.importStressTensor(usecase, DIM_Y, DIM_Z)
-    stresstensor = np.reshape(stresstensor, (-1, 3, 3))
+    ############ Preparing network inputs #####################################
 
-    print('--> Compute omega field')
+    print('--> Compute omega field for predicting')
     eps = 1*np.ones([DIM_Y, DIM_Z]) ## For now using epsilon=1 everywhere
-
     print('--> Compute k field')
-    k = core.calc_k(stresstensor)
+    # k = core.calc_k(stresstensor) ## In realitiy this is not possible, because k is unknown
+    k = 1*np.ones([DIM_Y, DIM_Z]) ## For now using k=1 everywhere
     k = np.reshape(k, (DIM_Y, DIM_Z))
-
-    print('--> Compute rotation rate and strain rate tensors')
+    print('--> Compute rotation rate and strain rate tensors for predicting')
     S,R = core.calc_S_R(velocity_gradient, k, eps)
-
-    print('--> Compute eigenvalues for network input')
+    print('--> Compute eigenvalues for network input for predicting')
     eigenvalues = core.calc_scalar_basis(S, R)  # Scalar basis lamba's
-
-    print('--> Compute tensor basis')
+    print('--> Compute tensor basis for predicting')
     tensorbasis = core.calc_tensor_basis(S, R)
 
-    print('--> Compute b')
-    k = np.reshape(k, -1)
-    b = core.calc_output(stresstensor, k)
-    b = np.reshape(b, (-1, 9))
-    # for i in range(5):
-    #     b = make_realizable(b)
+    #core.tensorplot(S[:,:,:,:], DIM_Y, DIM_Z, 'Strain rate tensor')
+    #core.tensorplot(R[:,:,:,:], DIM_Y, DIM_Z, 'Rotation rate tensor')
 
-    stresstensor = np.reshape(stresstensor, (-1, 9))
+    ## Reshape 2D array to 1D arrays. Network only takes 1D arrays
+    k = np.reshape(k, -1)
     tensorbasis = np.reshape(tensorbasis, (-1, 10, 9))
     eigenvalues = np.reshape(eigenvalues, (-1, 5))
 
