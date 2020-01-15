@@ -80,7 +80,7 @@ class Core:
             fd.close()
 
         tensor = np.ones([DIM_Y, DIM_Z, 3,3])
-        
+
         for ii in range(DIM_Y):
 #            for jj in range(DIM_Z):
             tensor[ii,:,0,0] = data['uu'][ii]
@@ -279,12 +279,12 @@ class Core:
         b = np.reshape(b, (-1, 3, 3))
 
         for i in range(3):
-            tau[:, i, i] = b[:, i, i]+1./3.
+            # tau[:, i, i] = b[:, i, i]+1./3.
             for j in range(3):
-                if(j==i):
-                    tau[:, i, j] *= 2.0*k
-                else:
-                    tau[:, i, j] = b[:, i, j]*2.0*k
+                # if(j==i):
+                #     tau[:, i, j] *= 2.0*k
+                # else:
+                tau[:, i, j] = (b[:, i, j]+1./3)*2.0*k
 
         tau = np.reshape(tau, (-1, 9))
 

@@ -159,7 +159,7 @@ def main():
     eigenvalues = np.reshape(eigenvalues, (-1, 5))
 
     print('--> Build network')
-    neural_network = NN(2, 10, eigenvalues.shape[1], tensorbasis.shape[1], b.shape[1])
+    neural_network = NN(8, 30, eigenvalues.shape[1], tensorbasis.shape[1], b.shape[1])
     neural_network.build()
 
 
@@ -173,7 +173,7 @@ def main():
     plot_results(prediction, b)
 
     print('--> Plot stress tensor')
-    stresstensor = core.calc_tensor(b, k)
+    # stresstensor = core.calc_tensor(b, k)
     core.tensorplot(stresstensor, DIM_Y, DIM_Z)
     predicted_stress = core.calc_tensor(prediction, k)
     core.tensorplot(predicted_stress, DIM_Y, DIM_Z)

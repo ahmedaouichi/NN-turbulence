@@ -34,13 +34,13 @@ class NN:
         gamma_regularizer=None, beta_constraint=None, gamma_constraint=None)(merge_layer)
         model = keras.models.Model(inputs=[tensor_in, g_input], outputs=normalize_layer)
         # optimizer = keras.optimizers.RMSprop(learning_rate=0.09)
-        optimizer = optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.5, nesterov=True)
+        optimizer = optimizers.SGD(lr=1, decay=1e-6, momentum=0.5, nesterov=True)
         # optimizer = optimizers.Adam(learning_rate=0.01, beta_1=0.9, beta_2=0.999, amsgrad=False)
         model.compile(loss = 'mean_squared_error', optimizer = optimizer, metrics = ['accuracy'])
         self.model = model
 
     def train(self, invariants, tb, b):
-        history = self.model.fit([tb, invariants], b, batch_size = 200, nb_epoch = 50, verbose = 1)
+        history = self.model.fit([tb, invariants], b, batch_size = 200, nb_epoch = 10, verbose = 1)
         # SVG(model_to_dot(self.model).create(prog='dot', format='svg'))
         plot_model(self.model,show_shapes=True, expand_nested=True, to_file='model.png')
         result = self.model.predict([tb, invariants])
