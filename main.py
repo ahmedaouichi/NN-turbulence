@@ -160,7 +160,8 @@ def main():
 
     print('--> Build network')
     neural_network = NN(8, 30, eigenvalues.shape[1], tensorbasis.shape[1], b.shape[1])
-    neural_network.build()
+    dim = b.shape[0]
+    neural_network.build(dim)
 
 
     print('--> Train network')
