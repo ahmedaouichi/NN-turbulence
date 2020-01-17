@@ -43,15 +43,15 @@ class NN:
         gamma_regularizer=None, beta_constraint=None, gamma_constraint=None)(merge_layer)
 
         model = keras.models.Model(inputs=[tensor_in, g_input], outputs=merge_layer)
-        optimizer = optimizers.Adam(learning_rate=0.01, beta_1=0.9, beta_2=0.999, amsgrad=False)
-        # optimizer = optimizers.RMSprop(learning_rate=0.001, rho=0.9)
+        # optimizer = optimizers.Adam(learning_rate=0.01, beta_1=0.9, beta_2=0.999, amsgrad=False)
+        optimizer = optimizers.RMSprop(learning_rate=0.001, rho=0.9)
         model.compile(loss = 'mean_squared_error' , optimizer = optimizer, metrics = ['accuracy'])
 
         self.model = model
 
     def train(self, invariants, tb, b):
         # plot_model(self.model,show_shapes=True, expand_nested=True, to_file='model.png')
-        history = self.model.fit([tb, invariants], b, batch_size=128, epochs=1, verbose=1)
+        history = self.model.fit([tb, invariants], b, batch_size=64, epochs=2, verbose=1)
         result = self.model.predict([tb, invariants])
         return result
 

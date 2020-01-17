@@ -166,18 +166,19 @@ def main():
     neural_network.build(dim)
 
     print('--> Train network')
+    # for i in range(5)
     prediction = neural_network.train(eigenvalues, tensorbasis, b)
 
     # for i in range(5):
     #     prediction = make_realizable(prediction)
 
     print('--> Plot b prediction')
-    plot_results(prediction, b)
-    print('--> Plot stress tensor')
+    # plot_results(prediction, b)
+    print('--> Plot b tensor')
     core.tensorplot(b, DIM_Y, DIM_Z)
     core.tensorplot(prediction, DIM_Y, DIM_Z)
 
-    print('--> Plot b tensor')
+    print('--> Plot stress tensor')
     core.tensorplot(stresstensor, DIM_Y, DIM_Z)
     predicted_stress = core.calc_tensor(prediction, k)
     core.tensorplot(predicted_stress, DIM_Y, DIM_Z)
