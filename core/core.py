@@ -11,6 +11,27 @@ class Core:
     def __init__(self):
         self.object_id = Core.object_counter
         Core.object_counter += 1
+        
+    def plot_results(self,predicted_stresses, true_stresses):
+    
+        fig = plt.figure()
+        fig.patch.set_facecolor('white')
+        on_diag = [0, 4, 8]
+        for i in range(9):
+                plt.subplot(3, 3, i+1)
+                ax = fig.gca()
+                ax.set_aspect('equal')
+                plt.plot([-1., 1.], [-1., 1.], 'r--')
+                plt.scatter(true_stresses[:, i], predicted_stresses[:, i])
+                plt.xlabel('True value')
+                plt.ylabel('Predicted value')
+                if i in on_diag:
+                    plt.xlim([-1./3., 2./3.])
+                    plt.ylim([-1./3., 2./3.])
+                else:
+                    plt.xlim([-0.5, 0.5])
+                    plt.ylim([-0.5, 0.5])
+        plt.show()
 
     def importCoordinates(coordinate, usecase): ##### Input coordinate should be 'y' or 'z'
         ## As for RA=1 the grid is square, there is no file containing y coordinates for RA.
@@ -179,18 +200,89 @@ class Core:
 
     def tensorplot(self, tensor, DIM_Y, DIM_Z, title=None):
         tensor = np.reshape(tensor, (DIM_Y, DIM_Z, 9))
-
+        
+        ## Rescale each vector element t0 [0,1]
+        for i in range(0,9):
+            tensor[:,:,i] -= tensor[:,:,i].min()
+            tensor[:,:,i] /= tensor[:,:,i].max()/0.006
+        
         fig, axes = plt.subplots(nrows=3, ncols=3)
         fig.suptitle(title)
         ii = 0
         for ax in axes.flat:
-            im = ax.contourf(tensor[:,:,ii])
+            im = ax.imshow(tensor[:,:,ii])
+            ax.plot([int(DIM_Y/2),int(DIM_Y/2)],[0,DIM_Z], 'w-')
+            ax.set_xlim([0, DIM_Y])
+            ax.set_ylim([0, DIM_Z])
+            
+            if ii not in [0,3,6]:
+                ax.get_yaxis().set_visible(False)
+            
+            if ii not in [6,7,8]:
+                ax.get_xaxis().set_visible(False)
+            
             ii += 1
-
-        fig.subplots_adjust(right=0.8)
+            
+        plt.subplots_adjust(wspace=0.125, hspace=0.125,top=0.92, right=0.8)
         cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
         fig.colorbar(im, cax=cbar_ax)
-
+        
+        fig2, axes2 = plt.subplots(nrows=3, ncols=3)
+        fig2.suptitle(title)
+        ii = 0
+        for ax in axes2.flat:
+            im = ax.imshow(tensor[:,:,ii])
+            ax.plot([0,DIM_Y], [int(DIM_Z/2),int(DIM_Z/2)], 'w-')
+            ax.set_xlim([0, DIM_Y])
+            ax.set_ylim([0, DIM_Z])
+            
+            if ii not in [0,3,6]:
+                ax.get_yaxis().set_visible(False)
+            
+            if ii not in [6,7,8]:
+                ax.get_xaxis().set_visible(False)
+                
+            ii += 1
+            
+        plt.subplots_adjust(wspace=0.125, hspace=0.125,top=0.92, right=0.8)
+        cbar_ax1 = fig2.add_axes([0.85, 0.15, 0.05, 0.7])
+        fig2.colorbar(im, cax=cbar_ax1)
+        
+        fig3, axes3 = plt.subplots(nrows=3, ncols=3)
+        fig3.suptitle(title)
+        ii=0
+        for ax in axes3.flat:
+            ax.plot(tensor[:, int(DIM_Z/2), ii], np.arange(DIM_Z))
+            ax.set_ylim([0, DIM_Z])
+            ax.set_xlim([0, 0.006])
+            if ii not in [0,3,6]:
+                ax.get_yaxis().set_visible(False)
+            
+            if ii not in [6,7,8]:
+                ax.get_xaxis().set_visible(False)
+                
+            ii += 1
+            
+        plt.subplots_adjust(wspace=0.125, hspace=0.125,top=0.92)
+            
+        fig4, axes4 = plt.subplots(nrows=3, ncols=3)
+        fig4.suptitle(title)
+        ii=0
+        for ax in axes4.flat:
+            ax.plot(np.arange(DIM_Y), tensor[:, int(DIM_Z/2), ii])
+            ax.set_xlim([0, DIM_Y])
+            ax.set_ylim([0, 0.006])
+            
+            if ii not in [0,3,6]:
+                ax.get_yaxis().set_visible(False)
+            
+            if ii not in [6,7,8]:
+                ax.get_xaxis().set_visible(False)
+                
+            ii += 1
+        
+        plt.subplots_adjust(wspace=0.125, hspace=0.125,top=0.92)
+            
     def calc_scalar_basis_test(self, S, R):
         num_points = S.shape[0]
         num_eigenvalues = 5

@@ -51,7 +51,7 @@ class NN:
 
     def train(self, invariants, tb, b):
         # plot_model(self.model,show_shapes=True, expand_nested=True, to_file='model.png')
-        history = self.model.fit([tb, invariants], b, batch_size=64, epochs=2, verbose=1)
+        self.model.fit([tb, invariants], b, batch_size=64, epochs=2, verbose=1)
         result = self.model.predict([tb, invariants])
         return result
 
