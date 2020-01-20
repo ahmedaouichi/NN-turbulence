@@ -1,69 +1,48 @@
 import numpy as np
 from nn import NN
-from core import Core
-from keras.models import Sequential
-from keras.layers import Dense, Lambda
-from keras.callbacks import EarlyStopping
-from sklearn.utils import shuffle
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
-import matplotlib.pyplot as plt
-import keras.backend as K
-import math as m
+from processor import Calculator, Plot, Gradient, Read
+#from core import Core
+
 import matplotlib.pyplot as plt
 
-def main():
-    core = Core()
-
-    ## Specify usecase: (RA)_(Retau), RA = ratio aspect, Retau is usecase = '3_180'
-    eigenvalues_shape = 5
-    tensorbasis_shape = 10
-    stresstensor_shape = 9
-
-    Retau = 180
-    RA_list = [1,3,5,7,10,14]
+def importData(usecase):
     velocity_comps = ['U', 'V', 'W']
-    DIM = len(velocity_comps)
-
-
-    RA = RA_list[0]
-    usecase =  str(RA)+'_'+str(Retau)
-
+    
     print('--> Import coordinate system')
-    ycoord, DIM_Y = Core.importCoordinates('y', usecase)
-    zcoord, DIM_Z = Core.importCoordinates('z', usecase)
+    ycoord, DIM_Y = Read.importCoordinates('y', usecase)
+    zcoord, DIM_Z = Read.importCoordinates('z', usecase)
 
     print('--> Import mean velocity field')
-    data = np.zeros([DIM_Y, DIM_Z, DIM])
-    for ii in range(DIM):
-        data[:,:,ii] = core.importMeanVelocity(DIM_Y, DIM_Z, usecase, velocity_comps[ii])
+    data = np.zeros([DIM_Y, DIM_Z, 3])
+    for ii in range(3):
+        data[:,:,ii] = Read.importMeanVelocity(DIM_Y, DIM_Z, usecase, velocity_comps[ii])
 
     print('--> Compute mean velocity gradient')
-    velocity_gradient = core.gradient(data, ycoord, zcoord)
+    velocity_gradient = Gradient.gradient(data, ycoord, zcoord)
 
     print('--> Import Reynolds stress tensor')
-    stresstensor = core.importStressTensor(usecase, DIM_Y, DIM_Z)
+    stresstensor = Read.importStressTensor(usecase, DIM_Y, DIM_Z)
     stresstensor = np.reshape(stresstensor, (-1, 3, 3))
 
     print('--> Compute omega field')
     eps = 1*np.ones([DIM_Y, DIM_Z]) ## For now using epsilon=1 everywhere
 
     print('--> Compute k field')
-    k = core.calc_k(stresstensor)
+    k = Calculator.calc_k(stresstensor)
     k = np.reshape(k, (DIM_Y, DIM_Z))
 
     print('--> Compute rotation rate and strain rate tensors')
-    S,R = core.calc_S_R(velocity_gradient, k, eps)
+    S,R = Calculator.calc_S_R(velocity_gradient, k, eps)
 
     print('--> Compute eigenvalues for network input')
-    eigenvalues = core.calc_scalar_basis(S, R)  # Scalar basis lamba's
+    eigenvalues = Calculator.calc_scalar_basis(S, R)  # Scalar basis lamba's
 
     print('--> Compute tensor basis')
-    tensorbasis = core.calc_tensor_basis(S, R)
+    tensorbasis = Calculator.calc_tensor_basis(S, R)
 
     print('--> Compute b')
     k = np.reshape(k, -1)
-    b = core.calc_output(stresstensor, k)
+    b = Calculator.calc_output(stresstensor, k)
     b = np.reshape(b, (-1, 9))
 
     # for i in range(5):
@@ -73,29 +52,49 @@ def main():
     tensorbasis = np.reshape(tensorbasis, (-1, 10, 9))
     eigenvalues = np.reshape(eigenvalues, (-1, 5))
 
+    return k, b, stresstensor, tensorbasis, eigenvalues, DIM_Y, DIM_Z
+
+def main():
+    ## Specify usecase: (RA)_(Retau), RA = ratio aspect, Retau is usecase = '3_180'
+    eigenvalues_shape = 5
+    tensorbasis_shape = 10
+    stresstensor_shape = 9
+
+    Retau = 180
+    RA_list = [1,3,5,7,10,14]
+    RA_predict = 5
+    RA_list_training = []
+    for RA in RA_list:
+        if RA != RA_predict:
+            RA_list_training.append(RA)
+
     print('--> Build network')
-    neural_network = NN(2, 20, eigenvalues.shape[1], tensorbasis.shape[1], b.shape[1])
-    dim = b.shape[0]
+    neural_network = NN(8, 30, eigenvalues_shape, tensorbasis_shape, stresstensor_shape)
+    
+    dim = stresstensor_shape
     neural_network.build(dim)
 
     print('--> Train network')
-    # for i in range(5)
-    prediction = neural_network.train(eigenvalues, tensorbasis, b)
-
-    # for i in range(5):
-    #     prediction = make_realizable(prediction)
-
-    print('--> Plot b prediction')
-#    core.plot_results(prediction, b)
     
-    print('--> Plot b tensor')
-#    core.tensorplot(b, DIM_Y, DIM_Z, 'True anisotropy tensor')
-#    core.tensorplot(prediction, DIM_Y, DIM_Z, 'Predicted anisotropy tensor')
+    for RA in RA_list_training:
+        usecase =  str(RA)+'_'+str(Retau)
+        k, b, stresstensor, tensorbasis, eigenvalues, DIM_Y, DIM_Z = importData(usecase)
+        
+        neural_network.train(eigenvalues, tensorbasis, b)
+
+#    print('--> Plot b prediction')
+#    Plot.plot_results(prediction, b)
+        
+    usecase =  str(RA_predict)+'_'+str(Retau)
+    k, b, stresstensor, tensorbasis, eigenvalues, DIM_Y, DIM_Z = importData(usecase)
+
+    prediction = neural_network.model.predict([tensorbasis, eigenvalues])
 
     print('--> Plot stress tensor')
-    core.tensorplot(stresstensor, DIM_Y, DIM_Z, 'True stresstensor')
-    predicted_stress = core.calc_tensor(prediction, k)
-    core.tensorplot(predicted_stress, DIM_Y, DIM_Z, 'Predicted stresstensor')
+    Plot.tensorplot(stresstensor, DIM_Y, DIM_Z, 'True stresstensor')
+    
+    predicted_stress = Calculator.calc_tensor(prediction, k)
+    Plot.tensorplot(predicted_stress, DIM_Y, DIM_Z, 'Predicted stresstensor')
 
     plt.show()
 main()

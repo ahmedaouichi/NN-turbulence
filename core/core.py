@@ -252,7 +252,7 @@ class Core:
         fig3.suptitle(title)
         ii=0
         for ax in axes3.flat:
-            ax.plot(tensor[:, int(DIM_Z/2), ii], np.arange(DIM_Z))
+            ax.plot(tensor[:, int(DIM_Z/2), ii], np.arange(DIM_Y))
             ax.set_ylim([0, DIM_Z])
             ax.set_xlim([0, 0.006])
             if ii not in [0,3,6]:

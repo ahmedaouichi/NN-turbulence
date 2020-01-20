@@ -1,4 +1,3 @@
-import keras
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.utils import plot_model
@@ -16,7 +15,6 @@ from tensorflow.keras.models import Model
 from tensorflow.keras.layers import (LSTM, Activation, BatchNormalization, Bidirectional,
                                      Conv1D, Dense, Dropout, Input, Lambda, Masking,
                                      TimeDistributed)
-import random
 
 class NN:
 
@@ -29,20 +27,20 @@ class NN:
 
     def build(self, dim):
 
-        g_input = keras.layers.Input(shape=(self.num_inputs,))
-        hidden = keras.layers.Dense(self.num_nodes, activation='relu')(g_input)
+        g_input = Input(shape=(self.num_inputs,))
+        hidden = Dense(self.num_nodes, activation='relu')(g_input)
         for i in range(self.num_layers-1):
-            hidden = keras.layers.Dense(self.num_nodes, activation='relu')(hidden)
-        g_output = keras.layers.Dense(self.num_outputs, activation='relu')(hidden)
-        tensor_in = keras.layers.Input(shape=(self.num_outputs, 9,))
+            hidden = Dense(self.num_nodes, activation='relu')(hidden)
+        g_output = Dense(self.num_outputs, activation='relu')(hidden)
+        tensor_in = Input(shape=(self.num_outputs, 9,))
         merge_layer = MergeLayer(dim)([tensor_in, g_output])
 
-        merge_layer = keras.layers.BatchNormalization(axis=-1, momentum=0.5, epsilon=1e-3, \
+        merge_layer = BatchNormalization(axis=-1, momentum=0.5, epsilon=1e-3, \
         center=True, scale=True, beta_initializer='zeros', gamma_initializer='ones', \
         moving_mean_initializer='zeros', moving_variance_initializer='ones', beta_regularizer=None, \
         gamma_regularizer=None, beta_constraint=None, gamma_constraint=None)(merge_layer)
 
-        model = keras.models.Model(inputs=[tensor_in, g_input], outputs=merge_layer)
+        model = Model(inputs=[tensor_in, g_input], outputs=merge_layer)
         # optimizer = optimizers.Adam(learning_rate=0.01, beta_1=0.9, beta_2=0.999, amsgrad=False)
         optimizer = optimizers.RMSprop(learning_rate=0.001, rho=0.9)
         model.compile(loss = 'mean_squared_error' , optimizer = optimizer, metrics = ['accuracy'])
@@ -50,10 +48,8 @@ class NN:
         self.model = model
 
     def train(self, invariants, tb, b):
-        # plot_model(self.model,show_shapes=True, expand_nested=True, to_file='model.png')
+        plot_model(self.model,show_shapes=True, expand_nested=True, to_file='model.png')
         self.model.fit([tb, invariants], b, batch_size=64, epochs=2, verbose=1)
-        result = self.model.predict([tb, invariants])
-        return result
 
 class MergeLayer(Layer):
     def __init__(self, output_dim, **kwargs):
