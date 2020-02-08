@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math as m
+import Read
 
 class Plot:
 
@@ -17,10 +18,10 @@ class Plot:
             ### Collect coordinates and mean velocity data
             usecase = str(ra)+'_'+str(Retau)
 
-            zcoord, DIM_Z = Core.importCoordinates('z', usecase)
-            ycoord, DIM_Y = Core.importCoordinates('y', usecase)
+            zcoord, DIM_Z = Read.importCoordinates('z', usecase)
+            ycoord, DIM_Y = Read.importCoordinates('y', usecase)
 
-            U = Core.importMeanVelocity(DIM_Y, DIM_Z, usecase, velocity_component)
+            U = Read.importMeanVelocity(DIM_Y, DIM_Z, usecase, velocity_component)
 
             ### Create subplots
             if (ncols == 0):

@@ -49,7 +49,7 @@ class NN:
 
     def train(self, invariants, tb, b):
         plot_model(self.model,show_shapes=True, expand_nested=True, to_file='model.png')
-        self.model.fit([tb, invariants], b, batch_size=64, epochs=2, verbose=1)
+        self.model.fit([tb, invariants], b, batch_size=64, epochs=2, verbose=1, validation_split=0.9)
 
 class MergeLayer(Layer):
     def __init__(self, output_dim, **kwargs):
